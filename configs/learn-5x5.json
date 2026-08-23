@@ -1,0 +1,16 @@
+{
+  "board_size": 5,
+  "starting_rows": 1,
+  "iterations": 20,
+  "games_per_iteration": 64,
+  "simulations": 100,
+  "cpuct": 1.5,
+  "train_steps": 32,
+  "batch_size": 64,
+  "replay_capacity": 20000,
+  "seed": 20260811,
+  "dirichlet_alpha": 0.3,
+  "dirichlet_fraction": 0.25,
+  "temperature": 1.0,
+  "temperature_plies": 8
+}

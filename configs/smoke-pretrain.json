@@ -1,0 +1,12 @@
+{
+  "board_size": 5,
+  "starting_rows": 1,
+  "games": 2,
+  "simulations": 4,
+  "cpuct": 1.5,
+  "seed": 20260811,
+  "tactical_rollouts": false,
+  "temperature": 1.0,
+  "temperature_plies": 4
+}
+

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "breakthrough-alphazero-student"
+version = "0.1.0"
+description = "A compact, student-readable AlphaZero-style engine for Breakthrough"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+train = ["tensorflow>=2.14,<2.19"]
+test = ["pytest>=8"]
+
+[project.scripts]
+breakthrough-zero = "breakthrough_zero.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

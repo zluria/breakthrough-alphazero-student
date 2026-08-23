@@ -1,0 +1,82 @@
+test_augmentation_removes_canonical_swap_duplicates (test_data_and_evaluation.DataTests) ... ok
+test_dummy_evaluator_has_uniform_legal_policy_and_absolute_value (test_data_and_evaluation.DataTests) ... ok
+test_raw_record_round_trip_reconstructs_position (test_data_and_evaluation.DataTests) ... ok
+test_replay_reports_actual_consumption (test_data_and_evaluation.DataTests) ... ok
+test_arena_pairs_every_opening_with_both_colors (test_data_and_evaluation.EvaluationTests) ... ok
+test_random_openings_are_distinct_and_reproducible (test_data_and_evaluation.EvaluationTests) ... ok
+test_wilson_interval_contains_observed_score (test_data_and_evaluation.EvaluationTests) ... ok
+test_alpha_beta_matches_brute_force_on_tractable_positions (test_game.GameRulesTests) ... ok
+test_capture_and_straight_move_restrictions (test_game.GameRulesTests) ... ok
+test_generator_matches_independent_reference_during_games (test_game.GameRulesTests) ... ok
+test_goal_move_is_terminal_and_does_not_switch_player (test_game.GameRulesTests) ... ok
+test_initial_5x5_and_native_8x8_setup (test_game.GameRulesTests) ... ok
+test_make_unmake_restores_every_field_exactly (test_game.GameRulesTests) ... ok
+test_no_legal_reply_is_a_win_without_turn_switch (test_game.GameRulesTests) ... ok
+test_policy_round_trip_for_every_legal_move_in_random_games (test_game.GameRulesTests) ... ok
+test_swap_and_reflection_commute (test_game.GameRulesTests) ... ok
+test_symmetries_are_involutions_and_preserve_legal_moves (test_game.GameRulesTests) ... ok
+test_all_absolute_targets_convert_relative (test_neural.NeuralBoundaryTests) ... ok
+test_identical_canonical_inputs_have_identical_raw_predictions (test_neural.NeuralBoundaryTests) ... ok
+test_illegal_actions_are_masked_exactly (test_neural.NeuralBoundaryTests) ... ok
+test_keras_save_load_preserves_predictions (test_neural.NeuralBoundaryTests) ... 2026-08-23 17:02:09.217297: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 17:02:09.217325: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 17:02:09.217331: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 17:02:09.724684: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/zurlu/.conda/envs/zur_env/lib/python3.9/site-packages/tensorflow/python/framework/dtypes.py:35: DeprecationWarning: ml_dtypes.float8_e4m3b11 is deprecated. Use ml_dtypes.float8_e4m3b11fnuz
+  from tensorflow.tsl.python.lib.core import pywrap_ml_dtypes
+2026-08-23 17:02:16.891236: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.024860: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.025005: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.025467: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.025573: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.025666: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.105720: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.108831: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.108935: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:02:18.109010: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 17:02:18.686303: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 17:02:19.559392: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 17:02:21.709790: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+WARNING:absl:Skipping variable loading for optimizer 'Adam', because it has 39 variables whereas the saved optimizer has 1 variables. 
+ok
+test_left_right_policy_transform_is_exact (test_neural.NeuralBoundaryTests) ... ok
+test_swapped_and_rotated_positions_have_identical_inputs (test_neural.NeuralBoundaryTests) ... ok
+test_wrapper_opposes_absolute_values_for_swapped_players (test_neural.NeuralBoundaryTests) ... ok
+test_backup_preserves_absolute_sign (test_puct.PUCTTests) ... ok
+test_immediate_winning_moves_are_found_for_both_players (test_puct.PUCTTests) ... ok
+test_player_one_maximizes_and_player_two_minimizes_absolute_q (test_puct.PUCTTests) ... ok
+test_search_never_mutates_input (test_puct.PUCTTests) ... ok
+test_swapped_positions_reverse_absolute_root_values (test_puct.PUCTTests) ... ok
+test_unvisited_child_uses_parent_q_as_first_play_urgency (test_puct.PUCTTests) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 16.333s
+
+OK
+
+{
+  "board_size": 5,
+  "starting_rows": 1,
+  "games": 2,
+  "simulations": 4,
+  "cpuct": 1.5,
+  "seed": 20260811,
+  "tactical_rollouts": false,
+  "temperature": 1.0,
+  "temperature_plies": 4,
+  "positions": 49,
+  "player1_wins": 1,
+  "elapsed_s": 0.06661753403022885,
+  "output": "data/raw/smoke-pretraining.jsonl.gz"
+}
+
+{
+  "positions": 49,
+  "games": 2,
+  "mean_game_length": 24.5,
+  "mean_search_seconds": 0.0008998513982004048,
+  "mean_root_visits": 4.0,
+  "player1_outcome_fraction": 0.5102040816326531
+}
+
