@@ -134,7 +134,6 @@ class GameNetwork:
             use_bias=False,
             kernel_regularizer=regularizer,
         )(inputs)
-        x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Activation("relu")(x)
         for _ in range(self.residual_blocks):
             residual = x
@@ -145,7 +144,6 @@ class GameNetwork:
                 use_bias=False,
                 kernel_regularizer=regularizer,
             )(x)
-            x = keras.layers.BatchNormalization()(x)
             x = keras.layers.Activation("relu")(x)
             x = keras.layers.Conv2D(
                 self.filters,
@@ -154,7 +152,6 @@ class GameNetwork:
                 use_bias=False,
                 kernel_regularizer=regularizer,
             )(x)
-            x = keras.layers.BatchNormalization()(x)
             x = keras.layers.Add()([x, residual])
             x = keras.layers.Activation("relu")(x)
 
@@ -214,4 +211,3 @@ class GameNetwork:
         model = tf.keras.models.load_model(path)
         board_size = int(model.input_shape[1])
         return cls(board_size, model=model)
-

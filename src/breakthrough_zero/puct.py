@@ -119,7 +119,7 @@ class PUCTPlayer:
     def select_child(self, parent: PUCTNode, player_to_move: int) -> tuple[int, PUCTNode]:
         if not parent.children:
             raise ValueError("cannot select from an unexpanded node")
-        parent_scale = math.sqrt(max(1, parent.visit_count))
+        parent_scale = math.sqrt(parent.visit_count)
 
         def score(item: tuple[int, PUCTNode]) -> tuple[float, int]:
             action, child = item
@@ -144,6 +144,10 @@ class PUCTPlayer:
         if game.status() is not None:
             raise ValueError("cannot search a terminal position")
         before = (tuple(game.board), game.player_to_move, game.winner)
+        started = time.perf_counter()
+        deadline = (
+            started + self.move_time_s if self.move_time_s is not None else math.inf
+        )
         root = PUCTNode(1.0)
         priors, _ = self.evaluator(game.clone())
         root.expand(priors)
@@ -151,10 +155,6 @@ class PUCTPlayer:
         if add_root_noise:
             self._add_root_noise(root)
 
-        started = time.perf_counter()
-        deadline = (
-            started + self.move_time_s if self.move_time_s is not None else math.inf
-        )
         completed = 0
         while completed < self.simulations and time.perf_counter() < deadline:
             state = game.clone()

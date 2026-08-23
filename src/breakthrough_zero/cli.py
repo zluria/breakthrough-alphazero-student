@@ -85,8 +85,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     diagnostic = subparsers.add_parser("diagnostic", help="run solver-supervised sanity training")
     diagnostic.add_argument("--output-dir", required=True)
-    diagnostic.add_argument("--examples", type=int, default=512)
-    diagnostic.add_argument("--epochs", type=int, default=12)
+    diagnostic.add_argument("--examples", type=int, default=2048)
+    diagnostic.add_argument("--epochs", type=int, default=24)
     diagnostic.add_argument("--batch-size", type=int, default=64)
     diagnostic.add_argument("--seed", type=int, default=20260811)
 

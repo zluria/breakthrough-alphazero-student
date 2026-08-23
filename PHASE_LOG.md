@@ -20,7 +20,10 @@
 - HPC smoke job 33965 was cancelled while pending because its dedicated RTX 3070 nodes were unavailable; it consumed no runtime.
 - HPC smoke job 33966 exposed a Slurm working-directory bug before project imports. The script was corrected from `SLURM_SUBMIT_DIR` to the actual job working directory.
 - Corrected smoke job 33967 completed on `HPC-RTX2080s-01` in 22 seconds with exit code 0. It ran all 30 tests, including real Keras save/load on TensorFlow 2.14, and generated two dummy-MCTS games (49 positions).
-- Solver-supervised learning awaits the bounded Phase 2 job.
+- Solver-supervised job 33968 stopped after 62 seconds as designed. Training losses approached zero while validation value loss stayed near 1.0; tactical value accuracy was 0.0 and policy accuracy 0.1. Color-swap error remained exactly zero, so the perspective boundary was not the cause.
+- Diagnosis: Batch Normalization moving statistics were poorly estimated from only seven small batches per epoch, and the high-capacity CNN memorized 512 examples. The data also balanced absolute labels rather than the mover-relative labels actually seen by the value head, and several tactical positions accidentally contained an unrelated immediate win.
+- Corrective action: remove Batch Normalization from the small CNN, balance mover-relative labels, discard ambiguous near-zero solver evaluations, increase the still-modest diagnostic set to 2,048 examples, add early stopping and explicit held-out accuracy, accept every solver-tied optimal policy action, and repair the tactical suite to include a real forced loss and a unique forced defense.
+- The revised diagnostic must pass before dummy-MCTS pretraining begins.
 
 ## Phase 3: dummy PUCT and required pretraining - pending HPC gate
 

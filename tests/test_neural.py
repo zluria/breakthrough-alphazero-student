@@ -86,7 +86,14 @@ class NeuralBoundaryTests(unittest.TestCase):
     def test_keras_save_load_preserves_predictions(self) -> None:
         network = GameNetwork(5, filters=8, residual_blocks=1)
         planes = canonical_planes(self.game)
+        policy = np.zeros((1, self.game.action_size), dtype=np.float32)
+        policy[0, self.game.legal_actions()[0]] = 1.0
+        network.model.train_on_batch(
+            planes[None, ...],
+            {"policy": policy, "value": np.asarray([[1.0]], dtype=np.float32)},
+        )
         before = network.predict_raw(planes)
+        optimizer_step = int(network.model.optimizer.iterations.numpy())
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "model.keras"
             network.save(path)
@@ -94,8 +101,8 @@ class NeuralBoundaryTests(unittest.TestCase):
             after = loaded.predict_raw(planes)
         np.testing.assert_allclose(before[0], after[0], atol=1e-6)
         self.assertAlmostEqual(before[1], after[1], places=6)
+        self.assertEqual(int(loaded.model.optimizer.iterations.numpy()), optimizer_step)
 
 
 if __name__ == "__main__":
     unittest.main()
-

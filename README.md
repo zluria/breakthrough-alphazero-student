@@ -117,6 +117,6 @@ For every submitted job, record the Git commit, command, configuration, seed, in
 - `RESULTS.md` is the human-readable Elo and diagnostic summary.
 - `RESEARCH_CONCLUSIONS.md` contains only lessons supported by completed experiments.
 - `docs/REPORT.md` and `docs/TEACHERS_TIPS.md` are the sources for the final PDFs.
+- `docs/LITERATURE_SURVEY.md` records mechanisms, evidence, complexity, and adopt/test/reject decisions for post-AlphaZero techniques.
 
 Checkpoints and generated raw data are ignored by Git because they may be large. Published releases should attach only verified data/checkpoints, never an invalid playable model.
-

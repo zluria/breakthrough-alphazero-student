@@ -1,0 +1,212 @@
+{
+  "dataset": {
+    "examples": 512,
+    "positive": 256,
+    "negative": 256
+  },
+  "history": {
+    "loss": [
+      5.953492641448975,
+      3.961493492126465,
+      2.946604013442993,
+      2.0825812816619873,
+      1.4177765846252441,
+      0.8457452058792114,
+      0.4731251299381256,
+      0.24940921366214752,
+      0.14694100618362427,
+      0.10310394316911697,
+      0.08038030564785004,
+      0.06917855143547058
+    ],
+    "policy_loss": [
+      4.772845268249512,
+      3.3234474658966064,
+      2.5844533443450928,
+      1.8833047151565552,
+      1.2932425737380981,
+      0.7702295780181885,
+      0.4069708585739136,
+      0.1950145661830902,
+      0.09840656071901321,
+      0.05679776147007942,
+      0.03540144860744476,
+      0.025590192526578903
+    ],
+    "value_loss": [
+      1.1403944492340088,
+      0.5976654887199402,
+      0.3216037154197693,
+      0.15855124592781067,
+      0.08362821489572525,
+      0.03443736955523491,
+      0.02492055483162403,
+      0.013032417744398117,
+      0.007074875291436911,
+      0.004782510455697775,
+      0.003418540582060814,
+      0.002011616714298725
+    ],
+    "val_loss": [
+      5.315227031707764,
+      5.311408996582031,
+      5.300368309020996,
+      5.264407157897949,
+      5.21820592880249,
+      5.1636834144592285,
+      5.120116710662842,
+      5.086198329925537,
+      5.059667587280273,
+      5.036709785461426,
+      5.016880035400391,
+      5.000419616699219
+    ],
+    "val_policy_loss": [
+      4.303379535675049,
+      4.287410259246826,
+      4.263169288635254,
+      4.227273464202881,
+      4.176488876342773,
+      4.122010231018066,
+      4.075436592102051,
+      4.040749549865723,
+      4.01371955871582,
+      3.9898459911346436,
+      3.969695806503296,
+      3.953840494155884
+    ],
+    "val_value_loss": [
+      0.9715250134468079,
+      0.9835181832313538,
+      0.996544599533081,
+      0.9962965846061707,
+      1.0007038116455078,
+      1.0004949569702148,
+      1.0033628940582275,
+      1.004021406173706,
+      1.0044447183609009,
+      1.0053144693374634,
+      1.0056114196777344,
+      1.0049992799758911
+    ]
+  },
+  "tactical": {
+    "positions": [
+      {
+        "name": "immediate_win",
+        "category": "immediate wins",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": -0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 51,
+        "top_policy_action": 51,
+        "policy_correct": true
+      },
+      {
+        "name": "must_defend",
+        "category": "immediate threats requiring defense",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": -0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 56,
+        "top_policy_action": 4,
+        "policy_correct": false
+      },
+      {
+        "name": "forced_race",
+        "category": "forced wins and losses",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": -0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 56,
+        "top_policy_action": 54,
+        "policy_correct": false
+      },
+      {
+        "name": "material_edge",
+        "category": "material advantages",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": -0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 56,
+        "top_policy_action": 2,
+        "policy_correct": false
+      },
+      {
+        "name": "passed_pawn",
+        "category": "advanced passed pawns",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": -0.024707654491066933,
+        "value_correct": false,
+        "solver_action": 48,
+        "top_policy_action": 2,
+        "policy_correct": false
+      },
+      {
+        "name": "immediate_win_swapped",
+        "category": "immediate wins",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": 0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 53,
+        "top_policy_action": 51,
+        "policy_correct": false
+      },
+      {
+        "name": "must_defend_swapped",
+        "category": "immediate threats requiring defense",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": 0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 56,
+        "top_policy_action": 4,
+        "policy_correct": false
+      },
+      {
+        "name": "forced_race_swapped",
+        "category": "forced wins and losses",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": 0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 56,
+        "top_policy_action": 54,
+        "policy_correct": false
+      },
+      {
+        "name": "material_edge_swapped",
+        "category": "material advantages",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": 0.014564460143446922,
+        "value_correct": false,
+        "solver_action": 56,
+        "top_policy_action": 2,
+        "policy_correct": false
+      },
+      {
+        "name": "passed_pawn_swapped",
+        "category": "advanced passed pawns",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": 0.024707654491066933,
+        "value_correct": false,
+        "solver_action": 50,
+        "top_policy_action": 2,
+        "policy_correct": false
+      }
+    ],
+    "value_accuracy": 0.0,
+    "policy_accuracy": 0.1,
+    "mean_color_swap_absolute_error": 0.0
+  },
+  "model": "results/phase2/diagnostic-5x5.keras",
+  "passed": false
+}

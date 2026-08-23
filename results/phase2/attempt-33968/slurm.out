@@ -1,0 +1,61 @@
+2026-08-23 17:07:23.401812: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 17:07:23.401836: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 17:07:23.401842: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 17:07:23.405327: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-23 17:07:26.473104: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.488533: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.488676: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.489059: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.489162: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.489252: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.546633: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.546764: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.546862: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:07:26.546935: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 17:07:28.323536: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 17:07:28.367377: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 17:07:28.477492: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 17:07:28.741767: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x7f367c5d5440 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-08-23 17:07:28.741795: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): NVIDIA GeForce RTX 2080 SUPER, Compute Capability 7.5
+2026-08-23 17:07:28.834204: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-08-23 17:07:29.413858: I ./tensorflow/compiler/jit/device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Traceback (most recent call last):
+  File "/home/zurlu/.conda/envs/zur_env/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/zurlu/.conda/envs/zur_env/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/zurlu/breakthrough-alphazero-student/src/breakthrough_zero/cli.py", line 204, in <module>
+    raise SystemExit(main())
+  File "/home/zurlu/breakthrough-alphazero-student/src/breakthrough_zero/cli.py", line 134, in main
+    report = run_supervised_diagnostic(
+  File "/home/zurlu/breakthrough-alphazero-student/src/breakthrough_zero/diagnostics.py", line 212, in run_supervised_diagnostic
+    raise RuntimeError(
+RuntimeError: supervised diagnostic failed; inspect diagnostic-report.json before MCTS training
+
+ERROR conda.cli.main_run:execute(124): `conda run python -m breakthrough_zero.cli diagnostic --output-dir results/phase2 --examples 512 --epochs 12 --batch-size 64 --seed 20260811` failed. (See above for error)
+Epoch 1/12
+7/7 - 5s - loss: 5.9535 - policy_loss: 4.7728 - value_loss: 1.1404 - val_loss: 5.3152 - val_policy_loss: 4.3034 - val_value_loss: 0.9715 - 5s/epoch - 662ms/step
+Epoch 2/12
+7/7 - 0s - loss: 3.9615 - policy_loss: 3.3234 - value_loss: 0.5977 - val_loss: 5.3114 - val_policy_loss: 4.2874 - val_value_loss: 0.9835 - 45ms/epoch - 6ms/step
+Epoch 3/12
+7/7 - 0s - loss: 2.9466 - policy_loss: 2.5845 - value_loss: 0.3216 - val_loss: 5.3004 - val_policy_loss: 4.2632 - val_value_loss: 0.9965 - 45ms/epoch - 6ms/step
+Epoch 4/12
+7/7 - 0s - loss: 2.0826 - policy_loss: 1.8833 - value_loss: 0.1586 - val_loss: 5.2644 - val_policy_loss: 4.2273 - val_value_loss: 0.9963 - 45ms/epoch - 6ms/step
+Epoch 5/12
+7/7 - 0s - loss: 1.4178 - policy_loss: 1.2932 - value_loss: 0.0836 - val_loss: 5.2182 - val_policy_loss: 4.1765 - val_value_loss: 1.0007 - 46ms/epoch - 7ms/step
+Epoch 6/12
+7/7 - 0s - loss: 0.8457 - policy_loss: 0.7702 - value_loss: 0.0344 - val_loss: 5.1637 - val_policy_loss: 4.1220 - val_value_loss: 1.0005 - 45ms/epoch - 6ms/step
+Epoch 7/12
+7/7 - 0s - loss: 0.4731 - policy_loss: 0.4070 - value_loss: 0.0249 - val_loss: 5.1201 - val_policy_loss: 4.0754 - val_value_loss: 1.0034 - 45ms/epoch - 6ms/step
+Epoch 8/12
+7/7 - 0s - loss: 0.2494 - policy_loss: 0.1950 - value_loss: 0.0130 - val_loss: 5.0862 - val_policy_loss: 4.0407 - val_value_loss: 1.0040 - 45ms/epoch - 6ms/step
+Epoch 9/12
+7/7 - 0s - loss: 0.1469 - policy_loss: 0.0984 - value_loss: 0.0071 - val_loss: 5.0597 - val_policy_loss: 4.0137 - val_value_loss: 1.0044 - 45ms/epoch - 6ms/step
+Epoch 10/12
+7/7 - 0s - loss: 0.1031 - policy_loss: 0.0568 - value_loss: 0.0048 - val_loss: 5.0367 - val_policy_loss: 3.9898 - val_value_loss: 1.0053 - 45ms/epoch - 6ms/step
+Epoch 11/12
+7/7 - 0s - loss: 0.0804 - policy_loss: 0.0354 - value_loss: 0.0034 - val_loss: 5.0169 - val_policy_loss: 3.9697 - val_value_loss: 1.0056 - 45ms/epoch - 6ms/step
+Epoch 12/12
+7/7 - 0s - loss: 0.0692 - policy_loss: 0.0256 - value_loss: 0.0020 - val_loss: 5.0004 - val_policy_loss: 3.9538 - val_value_loss: 1.0050 - 44ms/epoch - 6ms/step
+

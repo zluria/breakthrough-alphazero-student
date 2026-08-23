@@ -15,7 +15,7 @@ export PYTHONPATH="$PROJECT_DIR/src"
 mkdir -p results/slurm results/phase2
 conda run -n zur_env python -m breakthrough_zero.cli diagnostic \
   --output-dir results/phase2 \
-  --examples 512 \
-  --epochs 12 \
+  --examples 2048 \
+  --epochs 24 \
   --batch-size 64 \
   --seed 20260811
