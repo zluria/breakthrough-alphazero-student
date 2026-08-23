@@ -1,0 +1,20 @@
+{
+  "slurm_job_id": 33972,
+  "state": "COMPLETED",
+  "exit_code": "0:0",
+  "elapsed": "00:02:31",
+  "node": "HPC-RTX2080s-01",
+  "source_commit": "a23d351cc9325c30fa47600203418b203c1f42f0",
+  "checkpoint": "checkpoints/pretrained-5x5.keras",
+  "checkpoint_bytes": 1690922,
+  "checkpoint_sha256": "2f2c4ab5e794c78b9ec769cc0083252ce836326e896573b7ba8a2e69dcf269eb",
+  "training_games": 9000,
+  "validation_games": 1000,
+  "records": 121565,
+  "final_validation_policy_loss": 2.233220100402832,
+  "final_validation_value_loss": 0.7461751699447632,
+  "best_validation_value_loss": 0.7402147650718689,
+  "tactical_value_accuracy": 0.8333333333333334,
+  "tactical_policy_accuracy": 1.0,
+  "mean_color_swap_absolute_error": 0.0
+}

@@ -36,6 +36,15 @@
 - Artifact validation: gzip integrity passed; 10,000 distinct games, 121,565 positions, mean game length 12.1565, and exactly 100 mean root visits. Player 1 won 5,577 games.
 - The 9,077,590-byte raw corpus is preserved locally and on the HPC at `data/raw/pretraining-5x5-10000.jsonl.gz` with SHA-256 `fd5ce5b33eb3d673fcd1b57409d0f456c770e1413a56b2b84084ce94337d5c46`. It remains Git-ignored; the report, verification record, and Slurm log are tracked.
 
-## Phases 4-7 - pending
+## Phase 4: 5x5 AlphaZero learning - pretrained checkpoint passed; self-play learning pending
+
+- Slurm job 33972 ran commit `a23d351cc9325c30fa47600203418b203c1f42f0` on `HPC-RTX2080s-01` and completed in 2 minutes 31 seconds with exit code 0.
+- Its startup gate ran all 34 tests under TensorFlow 2.14 on an RTX 2080 SUPER. Keras save/load and separate native 75-action 5x5 / 192-action 8x8 shapes both passed.
+- The 10,000-game corpus was split by whole games: 9,000 training and 1,000 validation. Symmetry conversion produced 218,565 training and 24,564 validation examples after exact mover-relative duplicates were removed.
+- Across eight epochs, final training policy/value losses were 2.2304/0.7463 and validation policy/value losses were 2.2332/0.7462. Validation value loss was lowest one epoch earlier at 0.7402, so the small final increase is recorded rather than hidden.
+- Tactical value-sign accuracy was 0.8333, tactical policy accuracy 1.0000, and player-swap error exactly 0.0. The previously tracked forced-defense position remained pessimistically valued (`-0.2213`) while the network still ranked its unique defense first for both colors.
+- The 1,690,922-byte checkpoint is preserved locally and on the HPC at `checkpoints/pretrained-5x5.keras`, SHA-256 `2f2c4ab5e794c78b9ec769cc0083252ce836326e896573b7ba8a2e69dcf269eb`. It is eligible as a training initializer but is not yet claimed as a strong playable agent.
+
+## Phases 5-7 - pending
 
 No playing-strength or research claim is accepted until its configured job and paired arena complete.
