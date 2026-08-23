@@ -1,0 +1,273 @@
+2026-08-23 22:28:41.862355: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 22:28:41.862379: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 22:28:41.862385: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 22:28:41.865914: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-23 22:28:45.149874: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.165087: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.165236: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.165617: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.165720: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.165813: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.230602: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.230735: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.230834: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 22:28:45.230909: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 22:28:46.440022: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 22:28:46.480919: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 22:28:46.528812: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 22:28:46.590507: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x7f1580028b70 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-08-23 22:28:46.590528: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): NVIDIA GeForce RTX 2080 SUPER, Compute Capability 7.5
+2026-08-23 22:28:46.593755: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-08-23 22:28:46.637361: I ./tensorflow/compiler/jit/device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+
+{
+  "dataset": {
+    "examples": 512,
+    "positive": 256,
+    "negative": 256
+  },
+  "reports": [
+    {
+      "replay_seed_positions": 0,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_size": 652,
+          "replay_consumption_ratio": 0.7852760736196319,
+          "value_accuracy": 0.9296875,
+          "value_mse": 0.24107316136360168,
+          "policy_accuracy": 0.40234375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_size": 1342,
+          "replay_consumption_ratio": 0.7630402384500745,
+          "value_accuracy": 0.931640625,
+          "value_mse": 0.2341870665550232,
+          "policy_accuracy": 0.4140625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_size": 2016,
+          "replay_consumption_ratio": 0.7619047619047619,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.22966939210891724,
+          "policy_accuracy": 0.408203125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_size": 2718,
+          "replay_consumption_ratio": 0.753495217071376,
+          "value_accuracy": 0.935546875,
+          "value_mse": 0.22376030683517456,
+          "policy_accuracy": 0.421875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_size": 3458,
+          "replay_consumption_ratio": 0.7403123192596877,
+          "value_accuracy": 0.94140625,
+          "value_mse": 0.21766918897628784,
+          "policy_accuracy": 0.4375,
+          "tactical_value_accuracy": 0.6666666666666666,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "replay_seed_positions": 250,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_size": 902,
+          "replay_consumption_ratio": 0.5676274944567627,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.24414664506912231,
+          "policy_accuracy": 0.384765625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_size": 1592,
+          "replay_consumption_ratio": 0.6432160804020101,
+          "value_accuracy": 0.935546875,
+          "value_mse": 0.23727287352085114,
+          "policy_accuracy": 0.38671875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_size": 2266,
+          "replay_consumption_ratio": 0.677846425419241,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.23111841082572937,
+          "policy_accuracy": 0.40625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_size": 2968,
+          "replay_consumption_ratio": 0.6900269541778976,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.2297581285238266,
+          "policy_accuracy": 0.41796875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_size": 3708,
+          "replay_consumption_ratio": 0.6903991370010788,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.2309390902519226,
+          "policy_accuracy": 0.4296875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "replay_seed_positions": 500,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_size": 1152,
+          "replay_consumption_ratio": 0.4444444444444444,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.2420901358127594,
+          "policy_accuracy": 0.390625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_size": 1842,
+          "replay_consumption_ratio": 0.5559174809989142,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.234679713845253,
+          "policy_accuracy": 0.39453125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_size": 2516,
+          "replay_consumption_ratio": 0.6104928457869634,
+          "value_accuracy": 0.943359375,
+          "value_mse": 0.23510292172431946,
+          "policy_accuracy": 0.396484375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_size": 3218,
+          "replay_consumption_ratio": 0.6364201367308887,
+          "value_accuracy": 0.939453125,
+          "value_mse": 0.2337321937084198,
+          "policy_accuracy": 0.40234375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_size": 3958,
+          "replay_consumption_ratio": 0.6467913087417888,
+          "value_accuracy": 0.935546875,
+          "value_mse": 0.22916613519191742,
+          "policy_accuracy": 0.419921875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "replay_seed_positions": 1000,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_size": 1652,
+          "replay_consumption_ratio": 0.3099273607748184,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.24142375588417053,
+          "policy_accuracy": 0.392578125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_size": 2342,
+          "replay_consumption_ratio": 0.4372331340734415,
+          "value_accuracy": 0.939453125,
+          "value_mse": 0.23536595702171326,
+          "policy_accuracy": 0.376953125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_size": 3016,
+          "replay_consumption_ratio": 0.5092838196286472,
+          "value_accuracy": 0.943359375,
+          "value_mse": 0.2324467897415161,
+          "policy_accuracy": 0.384765625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_size": 3718,
+          "replay_consumption_ratio": 0.5508337816030123,
+          "value_accuracy": 0.943359375,
+          "value_mse": 0.2277611941099167,
+          "policy_accuracy": 0.388671875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_size": 4458,
+          "replay_consumption_ratio": 0.5742485419470614,
+          "value_accuracy": 0.9453125,
+          "value_mse": 0.2243417203426361,
+          "policy_accuracy": 0.39453125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    }
+  ]
+}
+

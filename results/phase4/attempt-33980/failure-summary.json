@@ -1,0 +1,23 @@
+{
+  "job_id": 33980,
+  "commit": "ea76ac6",
+  "status": "stopped_by_tactical_alarm",
+  "slurm_state": "FAILED",
+  "elapsed": "00:31:10",
+  "learning_rate": 0.0001,
+  "completed_iterations": 5,
+  "fresh_games": 320,
+  "fresh_positions": 3987,
+  "examples_presented": 2560,
+  "last_replay_consumption_ratio": 0.7403123192596877,
+  "last_actor_tactical_value_accuracy": 0.8333333333333334,
+  "last_checkpoint_tactical_value_accuracy": 0.6666666666666666,
+  "last_checkpoint_tactical_policy_accuracy": 1.0,
+  "last_checkpoint_swap_error": 0.0,
+  "last_regression_arena_score": "7/12",
+  "failed_checkpoint_is_playable": false,
+  "diagnosis": "The 0.0001 rate delayed but did not prevent a marginal material-edge sign crossing. Replay rehearsal did not reliably stabilize higher learning rates and was rejected. A factor-separated screen selected 0.00025 without replay seeding because it retained all tactical gates on both preserved failed-run datasets while materially improving solver-policy accuracy and value MSE.",
+  "diagnostic_jobs": [33981, 33982],
+  "selected_learning_rate": 0.00025,
+  "replay_seed_positions": 0
+}

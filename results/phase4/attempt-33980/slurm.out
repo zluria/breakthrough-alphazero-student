@@ -1,0 +1,100 @@
+2026-08-23 21:50:16.782437: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 21:50:16.782484: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 21:50:16.782490: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 21:50:16.785910: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+test_augmentation_removes_canonical_swap_duplicates (test_data_and_evaluation.DataTests) ... ok
+test_dummy_evaluator_has_uniform_legal_policy_and_absolute_value (test_data_and_evaluation.DataTests) ... ok
+test_first_iteration_tactical_decline_is_compared_with_actor (test_data_and_evaluation.DataTests) ... ok
+test_raw_record_round_trip_reconstructs_position (test_data_and_evaluation.DataTests) ... ok
+test_replay_reports_actual_consumption (test_data_and_evaluation.DataTests) ... ok
+test_self_play_records_keep_reconstructable_search_evidence (test_data_and_evaluation.DataTests) ... ok
+test_arena_pairs_every_opening_with_both_colors (test_data_and_evaluation.EvaluationTests) ... ok
+test_elo_table_recovers_a_simple_rating_difference (test_data_and_evaluation.EvaluationTests) ... ok
+test_random_openings_are_distinct_and_reproducible (test_data_and_evaluation.EvaluationTests) ... ok
+test_wilson_interval_contains_observed_score (test_data_and_evaluation.EvaluationTests) ... ok
+test_alpha_beta_matches_brute_force_on_tractable_positions (test_game.GameRulesTests) ... ok
+test_alpha_beta_timeout_restores_position (test_game.GameRulesTests) ... ok
+test_capture_and_straight_move_restrictions (test_game.GameRulesTests) ... ok
+test_generator_matches_independent_reference_during_games (test_game.GameRulesTests) ... ok
+test_goal_move_is_terminal_and_does_not_switch_player (test_game.GameRulesTests) ... ok
+test_initial_5x5_and_native_8x8_setup (test_game.GameRulesTests) ... ok
+test_make_unmake_restores_every_field_exactly (test_game.GameRulesTests) ... ok
+test_no_legal_reply_is_a_win_without_turn_switch (test_game.GameRulesTests) ... ok
+test_policy_round_trip_for_every_legal_move_in_random_games (test_game.GameRulesTests) ... ok
+test_swap_and_reflection_commute (test_game.GameRulesTests) ... ok
+test_symmetries_are_involutions_and_preserve_legal_moves (test_game.GameRulesTests) ... ok
+test_all_absolute_targets_convert_relative (test_neural.NeuralBoundaryTests) ... ok
+test_identical_canonical_inputs_have_identical_raw_predictions (test_neural.NeuralBoundaryTests) ... ok
+test_illegal_actions_are_masked_exactly (test_neural.NeuralBoundaryTests) ... ok
+test_keras_save_load_preserves_predictions (test_neural.NeuralBoundaryTests) ... 2026-08-23 21:50:20.036436: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.052121: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.052292: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.052896: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.053050: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.053173: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.117471: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.117603: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.117703: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:20.117777: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 21:50:20.893069: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 21:50:20.935770: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 21:50:20.985367: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 21:50:21.045964: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x7fea8246bea0 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-08-23 21:50:21.045985: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): NVIDIA GeForce RTX 2080 SUPER, Compute Capability 7.5
+2026-08-23 21:50:21.049174: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-08-23 21:50:21.094027: I ./tensorflow/compiler/jit/device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+ok
+test_left_right_policy_transform_is_exact (test_neural.NeuralBoundaryTests) ... ok
+test_native_network_shapes_are_never_padded (test_neural.NeuralBoundaryTests) ... ok
+test_swapped_and_rotated_positions_have_identical_inputs (test_neural.NeuralBoundaryTests) ... ok
+test_wrapper_opposes_absolute_values_for_swapped_players (test_neural.NeuralBoundaryTests) ... ok
+test_backup_preserves_absolute_sign (test_puct.PUCTTests) ... ok
+test_immediate_winning_moves_are_found_for_both_players (test_puct.PUCTTests) ... ok
+test_parent_player_controls_absolute_q_exploitation (test_puct.PUCTTests) ... ok
+test_search_never_mutates_input (test_puct.PUCTTests) ... ok
+test_swapped_positions_reverse_absolute_root_values (test_puct.PUCTTests) ... ok
+test_unvisited_child_uses_parent_q_as_first_play_urgency (test_puct.PUCTTests) ... ok
+test_teaching_source_avoids_advanced_language_features (test_simple_python.SimplePythonTests) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 2.381s
+
+OK
+
+2026-08-23 21:50:23.492117: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 21:50:23.492142: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 21:50:23.492147: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 21:50:23.495632: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-23 21:50:25.282293: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.295481: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.295626: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.296279: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.296384: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.296474: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.356661: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.356793: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.356893: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:50:25.356966: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 21:50:25.679595: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 21:50:25.719514: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 21:50:25.768184: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 21:56:09.122360: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x55be64ba3450 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-08-23 21:56:09.122381: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): NVIDIA GeForce RTX 2080 SUPER, Compute Capability 7.5
+2026-08-23 21:56:09.125617: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-08-23 21:56:09.170493: I ./tensorflow/compiler/jit/device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Traceback (most recent call last):
+  File "/home/zurlu/.conda/envs/zur_env/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/zurlu/.conda/envs/zur_env/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/zurlu/breakthrough-alphazero-student/src/breakthrough_zero/cli.py", line 222, in <module>
+    raise SystemExit(main())
+  File "/home/zurlu/breakthrough-alphazero-student/src/breakthrough_zero/cli.py", line 163, in main
+    report = run_learning_loop(
+  File "/home/zurlu/breakthrough-alphazero-student/src/breakthrough_zero/training.py", line 406, in run_learning_loop
+    raise RuntimeError("; ".join(alarms))
+RuntimeError: tactical value accuracy declined from 0.833 to 0.667
+
+ERROR conda.cli.main_run:execute(124): `conda run python -m breakthrough_zero.cli learn --config configs/learn-5x5.json --run-dir results/phase4/learn-5x5 --checkpoint checkpoints/pretrained-5x5.keras --report results/phase4/learn-5x5-report.json` failed. (See above for error)

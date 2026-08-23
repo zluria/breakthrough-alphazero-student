@@ -15,7 +15,9 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 | Dummy-PUCT neural pretraining | 5x5 | 1,000 held-out games; final val policy/value loss 2.233/0.746; tactical value 83.3%, policy 100%; swap error 0 | Slurm job 33972 |
 | AlphaZero learning, attempt 1 | 5x5 | Stopped: iteration-0 tactical value accuracy fell 83.3%→66.7%; alarm baseline bug found and fixed | Slurm job 33973 |
 | AlphaZero learning, attempt 2 | 5x5 | Stopped after iteration 3: tactical value 83.3%→66.7%; policy 100%, swap error 0, replay consumption 0.724 | Slurm job 33977 |
-| Continuation learning-rate screen | 5x5 | `0.001` and `0.0005` failed retention; `0.00025` and `0.0001` passed all four fixed-data tranches; selected `0.0001` | Slurm jobs 33978-33979 |
+| Continuation learning-rate screen | 5x5 | Short screen selected `0.0001`, but fresh confirmation showed it only delayed the marginal value crossing | Slurm jobs 33978-33980 |
+| AlphaZero learning, attempt 3 | 5x5 | Stopped after iteration 4: tactical value 83.3%→66.7%; policy 100%, swap error 0, replay consumption 0.740 | Slurm job 33980 |
+| Replay × learning-rate screen | 5x5 | Replay rehearsal rejected; unseeded `0.00025` retained all gates and improved solver policy 39.6%→45.7%, value MSE 0.247→0.203 | Slurm jobs 33981-33982 |
 
 ## Playing strength
 

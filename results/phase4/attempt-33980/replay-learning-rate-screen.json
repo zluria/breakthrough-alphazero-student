@@ -1,0 +1,514 @@
+{
+  "dataset": {
+    "examples": 512,
+    "positive": 256,
+    "negative": 256
+  },
+  "reports": [
+    {
+      "learning_rate": 0.001,
+      "replay_seed_positions": 0,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.7852760736196319,
+          "value_accuracy": 0.927734375,
+          "value_mse": 0.2260817587375641,
+          "policy_accuracy": 0.435546875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.7630402384500745,
+          "value_accuracy": 0.935546875,
+          "value_mse": 0.21237710118293762,
+          "policy_accuracy": 0.435546875,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.7619047619047619,
+          "value_accuracy": 0.89453125,
+          "value_mse": 0.3392462134361267,
+          "policy_accuracy": 0.421875,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.753495217071376,
+          "value_accuracy": 0.92578125,
+          "value_mse": 0.24141281843185425,
+          "policy_accuracy": 0.46484375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.7403123192596877,
+          "value_accuracy": 0.892578125,
+          "value_mse": 0.3402608036994934,
+          "policy_accuracy": 0.435546875,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.001,
+      "replay_seed_positions": 250,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.5676274944567627,
+          "value_accuracy": 0.921875,
+          "value_mse": 0.24524933099746704,
+          "policy_accuracy": 0.3984375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.6432160804020101,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.21822139620780945,
+          "policy_accuracy": 0.41796875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.677846425419241,
+          "value_accuracy": 0.904296875,
+          "value_mse": 0.26923930644989014,
+          "policy_accuracy": 0.3984375,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.6900269541778976,
+          "value_accuracy": 0.923828125,
+          "value_mse": 0.2695170044898987,
+          "policy_accuracy": 0.412109375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.6903991370010788,
+          "value_accuracy": 0.87109375,
+          "value_mse": 0.3789842426776886,
+          "policy_accuracy": 0.4296875,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.001,
+      "replay_seed_positions": 500,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.4444444444444444,
+          "value_accuracy": 0.927734375,
+          "value_mse": 0.23332877457141876,
+          "policy_accuracy": 0.392578125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.5559174809989142,
+          "value_accuracy": 0.90625,
+          "value_mse": 0.25762224197387695,
+          "policy_accuracy": 0.447265625,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.6104928457869634,
+          "value_accuracy": 0.888671875,
+          "value_mse": 0.3344264328479767,
+          "policy_accuracy": 0.408203125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.6364201367308887,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.20638518035411835,
+          "policy_accuracy": 0.435546875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.6467913087417888,
+          "value_accuracy": 0.759765625,
+          "value_mse": 0.6713496446609497,
+          "policy_accuracy": 0.3984375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.0005,
+      "replay_seed_positions": 0,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.7852760736196319,
+          "value_accuracy": 0.927734375,
+          "value_mse": 0.22515681385993958,
+          "policy_accuracy": 0.42578125,
+          "tactical_value_accuracy": 0.6666666666666666,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.7630402384500745,
+          "value_accuracy": 0.92578125,
+          "value_mse": 0.22664152085781097,
+          "policy_accuracy": 0.46484375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.7619047619047619,
+          "value_accuracy": 0.935546875,
+          "value_mse": 0.19756938517093658,
+          "policy_accuracy": 0.44921875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.753495217071376,
+          "value_accuracy": 0.94140625,
+          "value_mse": 0.20642799139022827,
+          "policy_accuracy": 0.455078125,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.7403123192596877,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.20598985254764557,
+          "policy_accuracy": 0.462890625,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.0005,
+      "replay_seed_positions": 250,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.5676274944567627,
+          "value_accuracy": 0.939453125,
+          "value_mse": 0.23933017253875732,
+          "policy_accuracy": 0.375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.6432160804020101,
+          "value_accuracy": 0.939453125,
+          "value_mse": 0.21510997414588928,
+          "policy_accuracy": 0.400390625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.677846425419241,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.21352648735046387,
+          "policy_accuracy": 0.408203125,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.6900269541778976,
+          "value_accuracy": 0.91796875,
+          "value_mse": 0.2342124879360199,
+          "policy_accuracy": 0.423828125,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.6903991370010788,
+          "value_accuracy": 0.91796875,
+          "value_mse": 0.24622677266597748,
+          "policy_accuracy": 0.458984375,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.0005,
+      "replay_seed_positions": 500,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.4444444444444444,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.22961093485355377,
+          "policy_accuracy": 0.39453125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.5559174809989142,
+          "value_accuracy": 0.943359375,
+          "value_mse": 0.2225152552127838,
+          "policy_accuracy": 0.43359375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.6104928457869634,
+          "value_accuracy": 0.90234375,
+          "value_mse": 0.2586056590080261,
+          "policy_accuracy": 0.455078125,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.6364201367308887,
+          "value_accuracy": 0.9296875,
+          "value_mse": 0.23891864717006683,
+          "policy_accuracy": 0.421875,
+          "tactical_value_accuracy": 0.6666666666666666,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.6467913087417888,
+          "value_accuracy": 0.951171875,
+          "value_mse": 0.19173063337802887,
+          "policy_accuracy": 0.423828125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.00025,
+      "replay_seed_positions": 0,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.7852760736196319,
+          "value_accuracy": 0.9296875,
+          "value_mse": 0.23319053649902344,
+          "policy_accuracy": 0.421875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.7630402384500745,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.2249724119901657,
+          "policy_accuracy": 0.42578125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.7619047619047619,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.2127789556980133,
+          "policy_accuracy": 0.453125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.753495217071376,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.20543083548545837,
+          "policy_accuracy": 0.45703125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.7403123192596877,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.20271283388137817,
+          "policy_accuracy": 0.45703125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.00025,
+      "replay_seed_positions": 250,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.5676274944567627,
+          "value_accuracy": 0.935546875,
+          "value_mse": 0.2408318817615509,
+          "policy_accuracy": 0.384765625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.6432160804020101,
+          "value_accuracy": 0.939453125,
+          "value_mse": 0.2266545295715332,
+          "policy_accuracy": 0.396484375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.677846425419241,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.21702894568443298,
+          "policy_accuracy": 0.416015625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.6900269541778976,
+          "value_accuracy": 0.939453125,
+          "value_mse": 0.21772520244121552,
+          "policy_accuracy": 0.427734375,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.6903991370010788,
+          "value_accuracy": 0.9296875,
+          "value_mse": 0.22411519289016724,
+          "policy_accuracy": 0.455078125,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.00025,
+      "replay_seed_positions": 500,
+      "iterations": [
+        {
+          "iteration": 0,
+          "replay_consumption_ratio": 0.4444444444444444,
+          "value_accuracy": 0.9375,
+          "value_mse": 0.23607265949249268,
+          "policy_accuracy": 0.392578125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "replay_consumption_ratio": 0.5559174809989142,
+          "value_accuracy": 0.94140625,
+          "value_mse": 0.22429469227790833,
+          "policy_accuracy": 0.408203125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "replay_consumption_ratio": 0.6104928457869634,
+          "value_accuracy": 0.94140625,
+          "value_mse": 0.23491156101226807,
+          "policy_accuracy": 0.43359375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "replay_consumption_ratio": 0.6364201367308887,
+          "value_accuracy": 0.939453125,
+          "value_mse": 0.219976007938385,
+          "policy_accuracy": 0.42578125,
+          "tactical_value_accuracy": 1.0,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 4,
+          "replay_consumption_ratio": 0.6467913087417888,
+          "value_accuracy": 0.94921875,
+          "value_mse": 0.1971970498561859,
+          "policy_accuracy": 0.4375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    }
+  ]
+}
+
