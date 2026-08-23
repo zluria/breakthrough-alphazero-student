@@ -29,7 +29,7 @@ class PUCTTests(unittest.TestCase):
         self.assertEqual([node.value_sum for node in path], [-0.75] * 3)
         self.assertEqual([node.visit_count for node in path], [1] * 3)
 
-    def test_player_one_maximizes_and_player_two_minimizes_absolute_q(self) -> None:
+    def test_parent_player_controls_absolute_q_exploitation(self) -> None:
         parent = PUCTNode(1.0, visit_count=20)
         high = PUCTNode(0.5, visit_count=5, value_sum=4.0)
         low = PUCTNode(0.5, visit_count=5, value_sum=-4.0)

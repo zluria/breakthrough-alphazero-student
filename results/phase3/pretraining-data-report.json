@@ -1,0 +1,15 @@
+{
+  "board_size": 5,
+  "starting_rows": 1,
+  "games": 10000,
+  "simulations": 100,
+  "cpuct": 1.5,
+  "seed": 20260811,
+  "tactical_rollouts": false,
+  "temperature": 1.0,
+  "temperature_plies": 8,
+  "positions": 121565,
+  "player1_wins": 5577,
+  "elapsed_s": 3440.7849679980427,
+  "output": "data/raw/pretraining-5x5-10000.jsonl.gz"
+}

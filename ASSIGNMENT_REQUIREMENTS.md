@@ -33,7 +33,7 @@ This checklist was extracted from the four course handouts dated August 11, 2026
 
 The 5x5, one-row game is an explicit diagnostic stage. It does not replace the mandatory native 8x8, two-row implementation or its fresh data and model.
 
-The handout writes PUCT as `Q + U`, which assumes all `Q` values use the maximizing player's viewpoint. This project stores every tree value in the absolute Player-1 viewpoint. The mathematically equivalent selection score is therefore `player_to_move * Q + U`: Player 1 prefers larger absolute `Q`, while Player 2 prefers smaller absolute `Q`. Backup never flips signs. Tests lock down this deliberate adaptation.
+For teaching clarity, this project stores every tree value in one absolute Player-1 viewpoint. At a parent node, the PUCT exploitation term is therefore `parent_player * Q`, and selection maximizes `parent_player * Q + U`. Player 1 prefers larger absolute `Q`; Player 2 prefers smaller absolute `Q`. The exploration term remains positive for either player, and backup never flips signs. This is the explicit absolute-value interpretation of the handout's `Q + U` formula, and tests lock it down.
 
 The course handout calls the neural value a win probability, while the requested invariant needs a signed value compatible with absolute Player-1 outcomes. The Keras value head uses `tanh` and trains on `-1/+1`; `(value + 1) / 2` is the corresponding mover win probability. This preserves MSE training and makes losses symmetric.
 

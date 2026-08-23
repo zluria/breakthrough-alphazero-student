@@ -28,11 +28,13 @@
 - Tracked weakness: the network chose the unique correct forced-defense action for both colors but assigned the resulting position a pessimistic value sign. This is not hidden; later tactical alarms must show that it improves or at least does not deteriorate.
 - Review: removing Batch Normalization made the native small CNN simpler and eliminated the train/inference statistics mismatch. The diagnostic checkpoint is evidence only and is not used as assignment pretraining.
 
-## Phase 3: dummy PUCT and required pretraining - generation in progress
+## Phase 3: dummy PUCT and required pretraining - passed
 
 - Local tests pass absolute backup, player-aware selection, parent-Q FPU, immediate wins for both players, swapped values, and input immutability.
-- Slurm job 33970 started the required 10,000-game dummy-PUCT generation on `HPC-RTX2080s-01` from source commit `31b3f8d31f89da58cfabe80f011ed6f61f135dee` (retained on the local audit branch after the no-reply metadata rewrite).
-- A running-state snapshot at 20 minutes showed no failure signal. Completion metrics are intentionally not claimed until Slurm and the generated report both finish successfully.
+- Slurm job 33970 ran the required 10,000-game dummy-PUCT generation on `HPC-RTX2080s-01` from source commit `31b3f8d31f89da58cfabe80f011ed6f61f135dee` (retained on the local audit branch after the no-reply metadata rewrite).
+- The job completed in 57 minutes 28 seconds with exit code 0. Its full TensorFlow environment test suite passed before generation.
+- Artifact validation: gzip integrity passed; 10,000 distinct games, 121,565 positions, mean game length 12.1565, and exactly 100 mean root visits. Player 1 won 5,577 games.
+- The 9,077,590-byte raw corpus is preserved locally and on the HPC at `data/raw/pretraining-5x5-10000.jsonl.gz` with SHA-256 `fd5ce5b33eb3d673fcd1b57409d0f456c770e1413a56b2b84084ce94337d5c46`. It remains Git-ignored; the report, verification record, and Slurm log are tracked.
 
 ## Phases 4-7 - pending
 

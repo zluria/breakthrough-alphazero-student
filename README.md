@@ -22,7 +22,7 @@ The CNN is mover-relative, but the rest of the program is absolute:
 - The raw value predicts for the mover.
 - `NeuralBoundary` alone converts raw values to absolute Player-1 values and converts absolute targets back to mover-relative targets.
 - MCTS values, `Q`, replay outcomes, arenas, and reports are absolute for Player 1.
-- Backup never changes a sign. Player 1 selects larger absolute `Q`; Player 2 selects smaller absolute `Q`.
+- Backup never changes a sign. At a parent node, selection maximizes `parent_player * Q + U`: Player 1 selects larger absolute `Q`, while Player 2 selects smaller absolute `Q`.
 
 If you change the encoding or value convention, start with `tests/test_neural.py` and `tests/test_puct.py`.
 

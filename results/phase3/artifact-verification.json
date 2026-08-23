@@ -1,0 +1,17 @@
+{
+  "slurm_job_id": 33970,
+  "state": "COMPLETED",
+  "exit_code": "0:0",
+  "elapsed": "00:57:28",
+  "node": "HPC-RTX2080s-01",
+  "source_commit": "31b3f8d31f89da58cfabe80f011ed6f61f135dee",
+  "data_path": "data/raw/pretraining-5x5-10000.jsonl.gz",
+  "bytes": 9077590,
+  "sha256": "fd5ce5b33eb3d673fcd1b57409d0f456c770e1413a56b2b84084ce94337d5c46",
+  "gzip_integrity": "pass",
+  "games": 10000,
+  "positions": 121565,
+  "mean_game_length": 12.1565,
+  "mean_root_visits": 100.0,
+  "player1_wins": 5577
+}

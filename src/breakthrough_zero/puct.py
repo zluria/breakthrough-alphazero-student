@@ -116,7 +116,7 @@ class PUCTPlayer:
 
         return child.Q if child.visit_count else parent.Q
 
-    def select_child(self, parent: PUCTNode, player_to_move: int) -> tuple[int, PUCTNode]:
+    def select_child(self, parent: PUCTNode, parent_player: int) -> tuple[int, PUCTNode]:
         if not parent.children:
             raise ValueError("cannot select from an unexpanded node")
         parent_scale = math.sqrt(parent.visit_count)
@@ -129,7 +129,7 @@ class PUCTPlayer:
             )
             # Player 1 prefers high Q; Player 2 prefers low Q. Exploration is a
             # positive incentive for both, so maximize player*Q + U.
-            return player_to_move * q + exploration, -action
+            return parent_player * q + exploration, -action
 
         action, child = max(parent.children.items(), key=score)
         return action, child

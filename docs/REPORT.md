@@ -4,7 +4,7 @@
 
 This project develops a compact AlphaZero-style engine for Breakthrough. Correctness is established in stages: a flat-list rules implementation is checked against an independent move generator; alpha-beta is checked against brute force; a two-plane mover-relative CNN is isolated behind one absolute-value conversion boundary; PUCT is tested with an assignment-prescribed dummy evaluator before being connected to the CNN. Training uses root visit counts for the policy target and final outcomes for the value target. The final study compares agents under reproducible, color-paired opening prefixes and equal wall-clock move budgets.
 
-The final numerical summary will be inserted only from completed JSON and Slurm artifacts. At the current verified gate, the local suite discovers 34 tests (32 pass and two TensorFlow-only tests skip locally), Keras save/load has passed in the TensorFlow HPC environment, the later-added native-shape test awaits the next Slurm gate, and the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy, 100% tactical policy accuracy, and exact player-swap consistency.
+The final numerical summary is inserted only from completed JSON and Slurm artifacts. At the current verified gate, the local suite discovers 34 tests (32 pass and two TensorFlow-only tests skip locally), Keras save/load has passed in the TensorFlow HPC environment, the later-added native-shape test awaits the next Slurm gate, and the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy, 100% tactical policy accuracy, and exact player-swap consistency. The assignment's dummy-PUCT stage completed 10,000 games and 121,565 reconstructable positions with exactly 100 mean root visits.
 
 ## 1. Assignment and scope
 
@@ -52,10 +52,10 @@ U = cpuct * P(s,a) * sqrt(N(s)) / (1 + N(s,a))
 Because `Q` is absolute rather than mover-relative, selection maximizes:
 
 ```text
-player_to_move * Q(s,a) + U(s,a)
+parent_player * Q(s,a) + U(s,a)
 ```
 
-Player 1 therefore prefers larger absolute `Q`, while Player 2 prefers smaller absolute `Q`. Backup adds the same absolute outcome to every node on the path and never flips a sign.
+Here `parent_player` is the player choosing the edge at the parent state. Player 1 therefore prefers larger absolute `Q`, while Player 2 prefers smaller absolute `Q`. Backup adds the same absolute outcome to every node on the path and never flips a sign.
 
 The assignment's dummy evaluator gives every legal action a uniform prior and obtains an absolute value from a seeded random rollout. It is used to generate the mandatory pretraining records before any neural PUCT self-play.
 
@@ -95,7 +95,7 @@ The corrected CNN removed Batch Normalization, balanced the mover-relative label
 
 ## 9. Results
 
-The 10,000-game pretraining, learned 5x5 checkpoints, paired arenas, native 8x8 transfer, and two-factor research screen are in progress. Their tables will be generated from the completed artifacts; placeholders are not reported as measurements.
+The required 5x5 dummy-PUCT corpus completed in Slurm job 33970: 10,000 games, 121,565 positions, mean game length 12.1565, and 5,577 Player-1 wins. Gzip integrity and the local/remote SHA-256 `fd5ce5b33eb3d673fcd1b57409d0f456c770e1413a56b2b84084ce94337d5c46` agree. Neural pretraining, learned 5x5 checkpoints, paired arenas, native 8x8 transfer, and the two-factor research screen remain gated on their own completed artifacts; placeholders are not reported as measurements.
 
 ## 10. Planned limited extensions
 

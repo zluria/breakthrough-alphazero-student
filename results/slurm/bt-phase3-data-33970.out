@@ -1,0 +1,62 @@
+test_augmentation_removes_canonical_swap_duplicates (test_data_and_evaluation.DataTests) ... ok
+test_dummy_evaluator_has_uniform_legal_policy_and_absolute_value (test_data_and_evaluation.DataTests) ... ok
+test_raw_record_round_trip_reconstructs_position (test_data_and_evaluation.DataTests) ... ok
+test_replay_reports_actual_consumption (test_data_and_evaluation.DataTests) ... ok
+test_arena_pairs_every_opening_with_both_colors (test_data_and_evaluation.EvaluationTests) ... ok
+test_elo_table_recovers_a_simple_rating_difference (test_data_and_evaluation.EvaluationTests) ... ok
+test_random_openings_are_distinct_and_reproducible (test_data_and_evaluation.EvaluationTests) ... ok
+test_wilson_interval_contains_observed_score (test_data_and_evaluation.EvaluationTests) ... ok
+test_alpha_beta_matches_brute_force_on_tractable_positions (test_game.GameRulesTests) ... ok
+test_alpha_beta_timeout_restores_position (test_game.GameRulesTests) ... ok
+test_capture_and_straight_move_restrictions (test_game.GameRulesTests) ... ok
+test_generator_matches_independent_reference_during_games (test_game.GameRulesTests) ... ok
+test_goal_move_is_terminal_and_does_not_switch_player (test_game.GameRulesTests) ... ok
+test_initial_5x5_and_native_8x8_setup (test_game.GameRulesTests) ... ok
+test_make_unmake_restores_every_field_exactly (test_game.GameRulesTests) ... ok
+test_no_legal_reply_is_a_win_without_turn_switch (test_game.GameRulesTests) ... ok
+test_policy_round_trip_for_every_legal_move_in_random_games (test_game.GameRulesTests) ... ok
+test_swap_and_reflection_commute (test_game.GameRulesTests) ... ok
+test_symmetries_are_involutions_and_preserve_legal_moves (test_game.GameRulesTests) ... ok
+test_all_absolute_targets_convert_relative (test_neural.NeuralBoundaryTests) ... ok
+test_identical_canonical_inputs_have_identical_raw_predictions (test_neural.NeuralBoundaryTests) ... ok
+test_illegal_actions_are_masked_exactly (test_neural.NeuralBoundaryTests) ... ok
+test_keras_save_load_preserves_predictions (test_neural.NeuralBoundaryTests) ... 2026-08-23 17:27:18.396804: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 17:27:18.396829: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 17:27:18.396838: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 17:27:18.400339: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/zurlu/.conda/envs/zur_env/lib/python3.9/site-packages/tensorflow/python/framework/dtypes.py:35: DeprecationWarning: ml_dtypes.float8_e4m3b11 is deprecated. Use ml_dtypes.float8_e4m3b11fnuz
+  from tensorflow.tsl.python.lib.core import pywrap_ml_dtypes
+2026-08-23 17:27:21.421467: E tensorflow/compiler/xla/stream_executor/cuda/cuda_driver.cc:268] failed call to cuInit: CUDA_ERROR_NO_DEVICE: no CUDA-capable device is detected
+ok
+test_left_right_policy_transform_is_exact (test_neural.NeuralBoundaryTests) ... ok
+test_swapped_and_rotated_positions_have_identical_inputs (test_neural.NeuralBoundaryTests) ... ok
+test_wrapper_opposes_absolute_values_for_swapped_players (test_neural.NeuralBoundaryTests) ... ok
+test_backup_preserves_absolute_sign (test_puct.PUCTTests) ... ok
+test_immediate_winning_moves_are_found_for_both_players (test_puct.PUCTTests) ... ok
+test_player_one_maximizes_and_player_two_minimizes_absolute_q (test_puct.PUCTTests) ... ok
+test_search_never_mutates_input (test_puct.PUCTTests) ... ok
+test_swapped_positions_reverse_absolute_root_values (test_puct.PUCTTests) ... ok
+test_unvisited_child_uses_parent_q_as_first_play_urgency (test_puct.PUCTTests) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 4.682s
+
+OK
+
+{
+  "board_size": 5,
+  "starting_rows": 1,
+  "games": 10000,
+  "simulations": 100,
+  "cpuct": 1.5,
+  "seed": 20260811,
+  "tactical_rollouts": false,
+  "temperature": 1.0,
+  "temperature_plies": 8,
+  "positions": 121565,
+  "player1_wins": 5577,
+  "elapsed_s": 3440.7849679980427,
+  "output": "data/raw/pretraining-5x5-10000.jsonl.gz"
+}
+
