@@ -1,0 +1,365 @@
+2026-08-23 17:23:31.622463: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 17:23:31.622487: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 17:23:31.622494: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 17:23:31.625934: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-23 17:23:34.721695: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.736792: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.736949: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.737441: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.737554: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.737656: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.799186: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.799329: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.799438: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 17:23:34.799520: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 17:23:35.840295: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 17:23:35.881553: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 17:23:35.931303: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 17:23:36.006533: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x56156cae1010 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-08-23 17:23:36.006555: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): NVIDIA GeForce RTX 2080 SUPER, Compute Capability 7.5
+2026-08-23 17:23:36.011832: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-08-23 17:23:36.060559: I ./tensorflow/compiler/jit/device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+
+Epoch 1/24
+26/26 - 2s - loss: 5.0113 - policy_loss: 3.9784 - value_loss: 0.9927 - val_loss: 4.4471 - val_policy_loss: 3.4626 - val_value_loss: 0.9443 - 2s/epoch - 86ms/step
+Epoch 2/24
+26/26 - 0s - loss: 3.8859 - policy_loss: 3.0306 - value_loss: 0.8145 - val_loss: 3.3987 - val_policy_loss: 2.6876 - val_value_loss: 0.6698 - 98ms/epoch - 4ms/step
+Epoch 3/24
+26/26 - 0s - loss: 2.8837 - policy_loss: 2.2727 - value_loss: 0.5692 - val_loss: 2.6912 - val_policy_loss: 2.0962 - val_value_loss: 0.5525 - 99ms/epoch - 4ms/step
+Epoch 4/24
+26/26 - 0s - loss: 2.1879 - policy_loss: 1.7098 - value_loss: 0.4351 - val_loss: 2.3568 - val_policy_loss: 1.7104 - val_value_loss: 0.6029 - 99ms/epoch - 4ms/step
+Epoch 5/24
+26/26 - 0s - loss: 1.7970 - policy_loss: 1.3798 - value_loss: 0.3732 - val_loss: 1.9887 - val_policy_loss: 1.5233 - val_value_loss: 0.4211 - 98ms/epoch - 4ms/step
+Epoch 6/24
+26/26 - 0s - loss: 1.6475 - policy_loss: 1.1876 - value_loss: 0.4152 - val_loss: 1.9950 - val_policy_loss: 1.4945 - val_value_loss: 0.4554 - 97ms/epoch - 4ms/step
+Epoch 7/24
+26/26 - 0s - loss: 1.4193 - policy_loss: 1.0806 - value_loss: 0.2932 - val_loss: 1.9202 - val_policy_loss: 1.3959 - val_value_loss: 0.4784 - 98ms/epoch - 4ms/step
+Epoch 8/24
+26/26 - 0s - loss: 1.1254 - policy_loss: 0.8790 - value_loss: 0.2002 - val_loss: 1.7439 - val_policy_loss: 1.3865 - val_value_loss: 0.3108 - 98ms/epoch - 4ms/step
+Epoch 9/24
+26/26 - 0s - loss: 1.0021 - policy_loss: 0.7770 - value_loss: 0.1782 - val_loss: 1.7085 - val_policy_loss: 1.3206 - val_value_loss: 0.3406 - 99ms/epoch - 4ms/step
+Epoch 10/24
+26/26 - 0s - loss: 0.8335 - policy_loss: 0.6393 - value_loss: 0.1465 - val_loss: 1.7353 - val_policy_loss: 1.3010 - val_value_loss: 0.3862 - 95ms/epoch - 4ms/step
+Epoch 11/24
+26/26 - 0s - loss: 0.7988 - policy_loss: 0.5753 - value_loss: 0.1751 - val_loss: 1.6649 - val_policy_loss: 1.3141 - val_value_loss: 0.3019 - 98ms/epoch - 4ms/step
+Epoch 12/24
+26/26 - 0s - loss: 0.7243 - policy_loss: 0.5120 - value_loss: 0.1631 - val_loss: 1.7891 - val_policy_loss: 1.3982 - val_value_loss: 0.3414 - 97ms/epoch - 4ms/step
+Epoch 13/24
+26/26 - 0s - loss: 0.5941 - policy_loss: 0.4330 - value_loss: 0.1113 - val_loss: 1.8005 - val_policy_loss: 1.4070 - val_value_loss: 0.3433 - 97ms/epoch - 4ms/step
+Epoch 14/24
+26/26 - 0s - loss: 0.5152 - policy_loss: 0.3745 - value_loss: 0.0901 - val_loss: 1.7766 - val_policy_loss: 1.3796 - val_value_loss: 0.3461 - 96ms/epoch - 4ms/step
+Epoch 15/24
+26/26 - 0s - loss: 0.3929 - policy_loss: 0.2685 - value_loss: 0.0732 - val_loss: 1.9341 - val_policy_loss: 1.5958 - val_value_loss: 0.2868 - 96ms/epoch - 4ms/step
+Epoch 16/24
+26/26 - 0s - loss: 0.2980 - policy_loss: 0.2027 - value_loss: 0.0435 - val_loss: 1.9294 - val_policy_loss: 1.5464 - val_value_loss: 0.3310 - 104ms/epoch - 4ms/step
+{
+  "dataset": {
+    "examples": 2048,
+    "positive": 1024,
+    "negative": 1024
+  },
+  "history": {
+    "loss": [
+      5.011275768280029,
+      3.8858706951141357,
+      2.883732795715332,
+      2.187896966934204,
+      1.7969673871994019,
+      1.6475226879119873,
+      1.4193246364593506,
+      1.1254044771194458,
+      1.0021438598632812,
+      0.8334704041481018,
+      0.7988166213035583,
+      0.7243105173110962,
+      0.594146192073822,
+      0.5152186751365662,
+      0.3929290175437927,
+      0.29801276326179504
+    ],
+    "policy_loss": [
+      3.9783742427825928,
+      3.0306084156036377,
+      2.2726614475250244,
+      1.7098037004470825,
+      1.3798304796218872,
+      1.1876323223114014,
+      1.080619215965271,
+      0.8789623379707336,
+      0.7770138382911682,
+      0.6393418908119202,
+      0.5753087997436523,
+      0.5120073556900024,
+      0.4329533278942108,
+      0.37452301383018494,
+      0.268521249294281,
+      0.2027340829372406
+    ],
+    "value_loss": [
+      0.9926961064338684,
+      0.8145009875297546,
+      0.5692412257194519,
+      0.4351078271865845,
+      0.3731977343559265,
+      0.41518470644950867,
+      0.2932437062263489,
+      0.20022912323474884,
+      0.17821824550628662,
+      0.14646312594413757,
+      0.17506586015224457,
+      0.16313162446022034,
+      0.11130688339471817,
+      0.09011536836624146,
+      0.07320553064346313,
+      0.04351935163140297
+    ],
+    "val_loss": [
+      4.447126388549805,
+      3.3986644744873047,
+      2.6911559104919434,
+      2.3567957878112793,
+      1.9887388944625854,
+      1.9949965476989746,
+      1.9202007055282593,
+      1.7439048290252686,
+      1.7084686756134033,
+      1.7353079319000244,
+      1.6648590564727783,
+      1.7891499996185303,
+      1.8005460500717163,
+      1.7766233682632446,
+      1.9340729713439941,
+      1.9294291734695435
+    ],
+    "val_policy_loss": [
+      3.462573289871216,
+      2.6876049041748047,
+      2.096217393875122,
+      1.7103928327560425,
+      1.523313045501709,
+      1.4944748878479004,
+      1.395933747291565,
+      1.3865019083023071,
+      1.3205803632736206,
+      1.3010468482971191,
+      1.3141124248504639,
+      1.3981857299804688,
+      1.4070011377334595,
+      1.3795771598815918,
+      1.5957754850387573,
+      1.546362042427063
+    ],
+    "val_value_loss": [
+      0.9442596435546875,
+      0.6697553396224976,
+      0.5524917840957642,
+      0.6029017567634583,
+      0.4210646152496338,
+      0.45544853806495667,
+      0.47841212153434753,
+      0.3108353316783905,
+      0.34059324860572815,
+      0.3861987888813019,
+      0.3019132614135742,
+      0.34142404794692993,
+      0.3432856500148773,
+      0.3461381793022156,
+      0.28679603338241577,
+      0.3310328423976898
+    ]
+  },
+  "heldout": {
+    "examples": 410,
+    "value_accuracy": 0.9024390243902439,
+    "policy_accuracy": 0.6
+  },
+  "tactical": {
+    "positions": [
+      {
+        "name": "immediate_win",
+        "category": "immediate wins",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": 0.9954574108123779,
+        "value_correct": true,
+        "solver_actions": [
+          51,
+          52,
+          53
+        ],
+        "top_policy_action": 51,
+        "policy_correct": true
+      },
+      {
+        "name": "must_defend",
+        "category": "immediate threats requiring defense",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": -0.4027521014213562,
+        "value_correct": false,
+        "solver_actions": [
+          5
+        ],
+        "top_policy_action": 5,
+        "policy_correct": true
+      },
+      {
+        "name": "forced_race",
+        "category": "forced wins and losses",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": 0.5190743207931519,
+        "value_correct": true,
+        "solver_actions": [
+          33,
+          34,
+          35
+        ],
+        "top_policy_action": 33,
+        "policy_correct": true
+      },
+      {
+        "name": "forced_loss",
+        "category": "forced wins and losses",
+        "player_to_move": 1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": -0.9271485805511475,
+        "value_correct": true,
+        "solver_actions": [
+          12,
+          27,
+          28
+        ],
+        "top_policy_action": 27,
+        "policy_correct": true
+      },
+      {
+        "name": "material_edge",
+        "category": "material advantages",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": 0.7690701484680176,
+        "value_correct": true,
+        "solver_actions": [
+          21,
+          23
+        ],
+        "top_policy_action": 21,
+        "policy_correct": true
+      },
+      {
+        "name": "passed_pawn",
+        "category": "advanced passed pawns",
+        "player_to_move": 1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": 0.876689612865448,
+        "value_correct": true,
+        "solver_actions": [
+          1,
+          2,
+          33,
+          34,
+          35
+        ],
+        "top_policy_action": 33,
+        "policy_correct": true
+      },
+      {
+        "name": "immediate_win_swapped",
+        "category": "immediate wins",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": -0.9954574108123779,
+        "value_correct": true,
+        "solver_actions": [
+          53,
+          52,
+          51
+        ],
+        "top_policy_action": 51,
+        "policy_correct": true
+      },
+      {
+        "name": "must_defend_swapped",
+        "category": "immediate threats requiring defense",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": 0.4027521014213562,
+        "value_correct": false,
+        "solver_actions": [
+          5
+        ],
+        "top_policy_action": 5,
+        "policy_correct": true
+      },
+      {
+        "name": "forced_race_swapped",
+        "category": "forced wins and losses",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": -0.5190743207931519,
+        "value_correct": true,
+        "solver_actions": [
+          35,
+          34,
+          33
+        ],
+        "top_policy_action": 33,
+        "policy_correct": true
+      },
+      {
+        "name": "forced_loss_swapped",
+        "category": "forced wins and losses",
+        "player_to_move": -1,
+        "expected_absolute_outcome": 1,
+        "predicted_absolute_value": 0.9271485805511475,
+        "value_correct": true,
+        "solver_actions": [
+          28,
+          27,
+          12
+        ],
+        "top_policy_action": 27,
+        "policy_correct": true
+      },
+      {
+        "name": "material_edge_swapped",
+        "category": "material advantages",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": -0.7690701484680176,
+        "value_correct": true,
+        "solver_actions": [
+          23,
+          21
+        ],
+        "top_policy_action": 21,
+        "policy_correct": true
+      },
+      {
+        "name": "passed_pawn_swapped",
+        "category": "advanced passed pawns",
+        "player_to_move": -1,
+        "expected_absolute_outcome": -1,
+        "predicted_absolute_value": -0.876689612865448,
+        "value_correct": true,
+        "solver_actions": [
+          35,
+          34,
+          33,
+          2,
+          1
+        ],
+        "top_policy_action": 33,
+        "policy_correct": true
+      }
+    ],
+    "value_accuracy": 0.8333333333333334,
+    "policy_accuracy": 1.0,
+    "mean_color_swap_absolute_error": 0.0
+  },
+  "model": "results/phase2/diagnostic-5x5.keras",
+  "passed": true
+}
+

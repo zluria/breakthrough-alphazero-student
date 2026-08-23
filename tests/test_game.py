@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import unittest
+from unittest.mock import patch
 
 from breakthrough_zero.agents import AlphaBetaAgent, solve_exact
 from breakthrough_zero.game import Breakthrough, Move, PLAYER_1, PLAYER_2
@@ -155,7 +156,16 @@ class GameRulesTests(unittest.TestCase):
             self.assertEqual(actual, expected)
             self.assertEqual(int(value), expected)
 
+    def test_alpha_beta_timeout_restores_position(self) -> None:
+        game = Breakthrough(5, 1)
+        before = (game.board.copy(), game.player_to_move, game.winner)
+        agent = AlphaBetaAgent(depth=3)
+        agent._deadline = 1.0
+        with patch("breakthrough_zero.agents.time.perf_counter", side_effect=[0.0, 2.0]):
+            with self.assertRaises(TimeoutError):
+                agent._alphabeta(game, 3, float("-inf"), float("inf"))
+        self.assertEqual((game.board, game.player_to_move, game.winner), before)
+
 
 if __name__ == "__main__":
     unittest.main()
-

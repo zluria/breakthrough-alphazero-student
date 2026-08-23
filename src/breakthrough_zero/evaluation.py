@@ -198,3 +198,96 @@ def evaluate_pair(
         "alarms": alarms,
         "games": [asdict(game) for game in games],
     }
+
+
+def fit_elo_table(reports: list[dict], *, anchor: str) -> dict:
+    """Fit a connected Bradley-Terry/Elo table with one fixed anchor rating."""
+
+    import numpy as np
+
+    names = sorted(
+        {name for report in reports for name in (report["agent_a"], report["agent_b"])}
+    )
+    if anchor not in names:
+        raise ValueError(f"anchor {anchor!r} is absent from the reports")
+    free = [name for name in names if name != anchor]
+    index = {name: i for i, name in enumerate(free)}
+    theta = np.zeros(len(free), dtype=np.float64)
+
+    def value(name: str) -> float:
+        return 0.0 if name == anchor else float(theta[index[name]])
+
+    for _ in range(100):
+        gradient = np.zeros_like(theta)
+        hessian = np.eye(len(theta), dtype=np.float64) * 1e-6
+        for report in reports:
+            games = int(report["games_completed"])
+            if games <= 0:
+                continue
+            # Jeffreys-style half-win/half-loss smoothing keeps separated
+            # matchups finite without materially changing ordinary results.
+            effective_games = games + 1.0
+            successes = float(report["agent_a_score"]) + 0.5
+            agent_a, agent_b = report["agent_a"], report["agent_b"]
+            difference = max(-30.0, min(30.0, value(agent_a) - value(agent_b)))
+            probability = 1.0 / (1.0 + math.exp(-difference))
+            residual = effective_games * probability - successes
+            curvature = effective_games * probability * (1.0 - probability)
+            if agent_a != anchor:
+                a = index[agent_a]
+                gradient[a] += residual
+                hessian[a, a] += curvature
+            if agent_b != anchor:
+                b = index[agent_b]
+                gradient[b] -= residual
+                hessian[b, b] += curvature
+            if agent_a != anchor and agent_b != anchor:
+                a, b = index[agent_a], index[agent_b]
+                hessian[a, b] -= curvature
+                hessian[b, a] -= curvature
+        step = np.linalg.solve(hessian, gradient)
+        theta -= step
+        if float(np.max(np.abs(step), initial=0.0)) < 1e-9:
+            break
+
+    # Rebuild the observed-information matrix at the solution for uncertainty.
+    information = np.eye(len(theta), dtype=np.float64) * 1e-6
+    for report in reports:
+        games = int(report["games_completed"])
+        if games <= 0:
+            continue
+        agent_a, agent_b = report["agent_a"], report["agent_b"]
+        difference = max(-30.0, min(30.0, value(agent_a) - value(agent_b)))
+        probability = 1.0 / (1.0 + math.exp(-difference))
+        curvature = (games + 1.0) * probability * (1.0 - probability)
+        if agent_a != anchor:
+            information[index[agent_a], index[agent_a]] += curvature
+        if agent_b != anchor:
+            information[index[agent_b], index[agent_b]] += curvature
+        if agent_a != anchor and agent_b != anchor:
+            a, b = index[agent_a], index[agent_b]
+            information[a, b] -= curvature
+            information[b, a] -= curvature
+    covariance = np.linalg.inv(information) if len(theta) else np.empty((0, 0))
+    scale = 400.0 / math.log(10.0)
+    ratings = []
+    for name in names:
+        if name == anchor:
+            rating, standard_error = 0.0, 0.0
+        else:
+            i = index[name]
+            rating = float(theta[i] * scale)
+            standard_error = float(math.sqrt(max(0.0, covariance[i, i])) * scale)
+        ratings.append(
+            {
+                "agent": name,
+                "elo": rating,
+                "standard_error": standard_error,
+                "elo_95_interval": [
+                    rating - 1.96 * standard_error,
+                    rating + 1.96 * standard_error,
+                ],
+            }
+        )
+    ratings.sort(key=lambda row: row["elo"], reverse=True)
+    return {"anchor": anchor, "reports": len(reports), "ratings": ratings}

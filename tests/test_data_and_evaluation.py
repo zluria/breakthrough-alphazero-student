@@ -8,7 +8,12 @@ import numpy as np
 
 from breakthrough_zero.agents import RandomAgent
 from breakthrough_zero.data import PositionRecord, read_records, write_records
-from breakthrough_zero.evaluation import evaluate_pair, randomized_openings, wilson_interval
+from breakthrough_zero.evaluation import (
+    evaluate_pair,
+    fit_elo_table,
+    randomized_openings,
+    wilson_interval,
+)
 from breakthrough_zero.game import Breakthrough
 from breakthrough_zero.puct import RolloutEvaluator
 from breakthrough_zero.replay import ReplayBuffer, records_to_training_arrays
@@ -103,6 +108,22 @@ class EvaluationTests(unittest.TestCase):
         low, high = wilson_interval(60, 100)
         self.assertLess(low, 0.6)
         self.assertGreater(high, 0.6)
+
+    def test_elo_table_recovers_a_simple_rating_difference(self) -> None:
+        table = fit_elo_table(
+            [
+                {
+                    "agent_a": "strong",
+                    "agent_b": "anchor",
+                    "games_completed": 100,
+                    "agent_a_score": 75.0,
+                }
+            ],
+            anchor="anchor",
+        )
+        ratings = {row["agent"]: row["elo"] for row in table["ratings"]}
+        self.assertEqual(ratings["anchor"], 0.0)
+        self.assertAlmostEqual(ratings["strong"], 189.5, delta=3.0)
 
 
 if __name__ == "__main__":

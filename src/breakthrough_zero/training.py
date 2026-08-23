@@ -11,6 +11,7 @@ import numpy as np
 
 from .data import append_records, play_self_play_game, read_records
 from .diagnostics import evaluate_tactical_suite
+from .evaluation import evaluate_pair
 from .game import Breakthrough
 from .neural import GameNetwork, NeuralBoundary
 from .puct import NeuralEvaluator, PUCTPlayer, RolloutEvaluator
@@ -179,6 +180,8 @@ def run_learning_loop(
 
     for iteration in range(config.iterations):
         iteration_started = time.perf_counter()
+        actor_checkpoint = checkpoint_dir / f"actor-{iteration:04d}.keras"
+        network.save(actor_checkpoint)
         boundary = NeuralBoundary(network)
         search = PUCTPlayer(
             NeuralEvaluator(boundary),
@@ -229,11 +232,50 @@ def run_learning_loop(
         network.save(checkpoint)
         network.save(checkpoint_dir / "latest.keras")
         tactics = evaluate_tactical_suite(network) if config.board_size == 5 else None
+        previous_network = GameNetwork.load(actor_checkpoint)
+
+        def latest_factory():
+            return PUCTPlayer(
+                NeuralEvaluator(NeuralBoundary(network)),
+                simulations=min(24, config.simulations),
+                cpuct=config.cpuct,
+                seed=config.seed + iteration,
+            )
+
+        def previous_factory():
+            return PUCTPlayer(
+                NeuralEvaluator(NeuralBoundary(previous_network)),
+                simulations=min(24, config.simulations),
+                cpuct=config.cpuct,
+                seed=config.seed + iteration + 100_000,
+            )
+
+        regression_arena = evaluate_pair(
+            latest_factory,
+            previous_factory,
+            agent_a_name=f"iteration-{iteration:04d}",
+            agent_b_name=f"actor-{iteration:04d}",
+            opening_count=6,
+            prefix_plies=2 if config.board_size == 5 else 4,
+            board_size=config.board_size,
+            starting_rows=config.starting_rows,
+            seed=config.seed + iteration,
+        )
+        regression_summary = {
+            key: value for key, value in regression_arena.items() if key != "games"
+        }
         alarms: list[str] = []
         replay_metrics = replay.metrics(iteration)
         ratio = total_examples_presented / max(1, total_fresh_positions)
         if not 0.25 <= ratio <= 8.0:
             alarms.append(f"replay consumption ratio {ratio:.3f} is outside [0.25, 8.0]")
+        if regression_arena["score_95_interval"][1] < 0.5:
+            alarms.append("new checkpoint is demonstrably weaker than its actor checkpoint")
+        if regression_arena["failures"]:
+            alarms.append(
+                f"regression arena had {regression_arena['failures']} failed games"
+            )
+        alarms.extend(regression_arena["alarms"])
         if tactics is not None:
             current_accuracy = tactics["value_accuracy"]
             if previous_tactical_accuracy is not None and current_accuracy + 0.1 < previous_tactical_accuracy:
@@ -258,6 +300,7 @@ def run_learning_loop(
             "symmetry_duplicates_removed": duplicate_count,
             "positions_per_second": len(fresh) / max(elapsed, 1e-9),
             "tactical": tactics,
+            "regression_arena": regression_summary,
             "alarms": alarms,
             "checkpoint": str(checkpoint),
         }

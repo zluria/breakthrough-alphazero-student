@@ -9,7 +9,8 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 | Rules/search unit tests | 5x5 and 8x8 | 30 pass, 1 TensorFlow-only skip | Local run, 2026-08-23 |
 | Keras save/load | 5x5 | Pass | Slurm job 33967, TensorFlow 2.14 on RTX 2080 SUPER |
 | Dummy-MCTS data smoke | 5x5 | 2 games, 49 positions, 4 visits/root | Slurm job 33967 |
-| Solver-supervised tactical diagnostic | 5x5 | Attempt 1 rejected: memorized training data, 0.0 tactical value accuracy | Slurm job 33968; corrective rerun pending |
+| Solver-supervised diagnostic, attempt 1 | 5x5 | Rejected: memorized training data, 0.0 tactical value accuracy | Slurm job 33968 |
+| Solver-supervised diagnostic, revised | 5x5 | Pass: held-out value 90.2%, policy 60.0%; tactical value 83.3%, policy 100%; swap error 0 | Slurm job 33969 |
 
 ## Playing strength
 

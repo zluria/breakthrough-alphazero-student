@@ -10,7 +10,7 @@ from pathlib import Path
 from .agents import AlphaBetaAgent, RandomAgent
 from .data import read_records, summarize_records
 from .diagnostics import run_supervised_diagnostic
-from .evaluation import evaluate_pair
+from .evaluation import evaluate_pair, fit_elo_table
 from .neural import GameNetwork, NeuralBoundary
 from .puct import NeuralEvaluator, PUCTPlayer, RolloutEvaluator
 from .training import (
@@ -115,6 +115,8 @@ def build_parser() -> argparse.ArgumentParser:
     arena = subparsers.add_parser("arena", help="run a paired-opening arena")
     arena.add_argument("--agent-a", choices=("random", "alphabeta", "rollout", "neural"), required=True)
     arena.add_argument("--agent-b", choices=("random", "alphabeta", "rollout", "neural"), required=True)
+    arena.add_argument("--a-name")
+    arena.add_argument("--b-name")
     arena.add_argument("--a-checkpoint")
     arena.add_argument("--b-checkpoint")
     arena.add_argument("--board-size", type=int, default=5)
@@ -125,6 +127,11 @@ def build_parser() -> argparse.ArgumentParser:
     arena.add_argument("--simulations", type=int, default=1000000)
     arena.add_argument("--seed", type=int, default=20260811)
     arena.add_argument("--output", required=True)
+
+    elo = subparsers.add_parser("elo-table", help="fit a connected Elo table from arena reports")
+    elo.add_argument("--reports", nargs="+", required=True)
+    elo.add_argument("--anchor", required=True)
+    elo.add_argument("--output", required=True)
     return parser
 
 
@@ -186,8 +193,8 @@ def main(argv: list[str] | None = None) -> int:
         report = evaluate_pair(
             factory_a,
             factory_b,
-            agent_a_name=args.agent_a,
-            agent_b_name=args.agent_b,
+            agent_a_name=args.a_name or args.agent_a,
+            agent_b_name=args.b_name or args.agent_b,
             opening_count=args.openings,
             prefix_plies=args.prefix_plies,
             board_size=args.board_size,
@@ -196,6 +203,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         _write_json(args.output, report)
         print(json.dumps({key: value for key, value in report.items() if key != "games"}, indent=2))
+        return 0
+    if args.command == "elo-table":
+        reports = [json.loads(Path(path).read_text(encoding="utf-8")) for path in args.reports]
+        table = fit_elo_table(reports, anchor=args.anchor)
+        _write_json(args.output, table)
+        print(json.dumps(table, indent=2))
         return 0
     raise AssertionError("unreachable command")
 

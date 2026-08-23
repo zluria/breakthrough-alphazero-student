@@ -118,8 +118,10 @@ class AlphaBetaAgent:
             best_move = moves[0]
             for move in moves:
                 game.make_move(move)
-                value, _ = self._alphabeta(game, depth - 1, alpha, beta)
-                game.unmake_move(move)
+                try:
+                    value, _ = self._alphabeta(game, depth - 1, alpha, beta)
+                finally:
+                    game.unmake_move(move)
                 if value > best_value:
                     best_value, best_move = value, move
                 alpha = max(alpha, best_value)
@@ -130,8 +132,10 @@ class AlphaBetaAgent:
             best_move = moves[0]
             for move in moves:
                 game.make_move(move)
-                value, _ = self._alphabeta(game, depth - 1, alpha, beta)
-                game.unmake_move(move)
+                try:
+                    value, _ = self._alphabeta(game, depth - 1, alpha, beta)
+                finally:
+                    game.unmake_move(move)
                 if value < best_value:
                     best_value, best_move = value, move
                 beta = min(beta, best_value)
@@ -189,4 +193,3 @@ def solve_exact(game: Breakthrough, cache: dict | None = None) -> int:
             return desired
     cache[key] = fallback
     return fallback
-
