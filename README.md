@@ -4,6 +4,8 @@ A compact AlphaZero-style project for Breakthrough, written for students who hav
 
 The repository is intentionally small. It uses ordinary Python lists and direct algorithms before considering optimization.
 
+This is a clean-room implementation derived from the supplied course handouts and the stated invariants. No implementation, checkpoint, training record, or infrastructure from the historical `breakthrough-zero` repository was copied.
+
 ## The game
 
 Player 1 begins at the top and moves toward the final row. Player 2 begins at the bottom and moves toward row zero. A pawn moves one square straight forward into an empty square or one square diagonally forward into an empty or enemy square. A diagonal move captures an enemy pawn. The first pawn to reach the far side wins; a player with no legal reply also loses.
