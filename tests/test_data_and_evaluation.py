@@ -7,7 +7,12 @@ import unittest
 import numpy as np
 
 from breakthrough_zero.agents import RandomAgent
-from breakthrough_zero.data import PositionRecord, read_records, write_records
+from breakthrough_zero.data import (
+    PositionRecord,
+    play_self_play_game,
+    read_records,
+    write_records,
+)
 from breakthrough_zero.evaluation import (
     evaluate_pair,
     fit_elo_table,
@@ -15,7 +20,7 @@ from breakthrough_zero.evaluation import (
     wilson_interval,
 )
 from breakthrough_zero.game import Breakthrough
-from breakthrough_zero.puct import RolloutEvaluator
+from breakthrough_zero.puct import PUCTPlayer, RolloutEvaluator
 from breakthrough_zero.replay import ReplayBuffer, records_to_training_arrays
 
 
@@ -76,6 +81,24 @@ class DataTests(unittest.TestCase):
         self.assertEqual(set(priors), set(game.legal_actions()))
         self.assertEqual(len(set(priors.values())), 1)
         self.assertIn(value, (-1.0, 1.0))
+
+    def test_self_play_records_keep_reconstructable_search_evidence(self) -> None:
+        records = play_self_play_game(
+            PUCTPlayer(RolloutEvaluator(seed=5), simulations=2, seed=5),
+            board_size=5,
+            starting_rows=1,
+            game_index=7,
+            seed=5,
+            temperature_plies=2,
+        )
+        self.assertGreater(len(records), 0)
+        self.assertTrue(all(record.final_outcome in (-1, 1) for record in records))
+        for record in records:
+            state = record.state()
+            self.assertIn(record.played_action, record.legal_actions)
+            self.assertEqual(set(record.legal_actions), set(state.legal_actions()))
+            self.assertEqual(sum(record.visit_counts), 2)
+            self.assertEqual(record.root_visits, 2)
 
 
 class EvaluationTests(unittest.TestCase):
