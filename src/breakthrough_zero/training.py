@@ -188,6 +188,28 @@ def _policy_kl(network: GameNetwork, x: np.ndarray, target: np.ndarray) -> float
     )
 
 
+def _tactical_decline_alarms(
+    current: dict,
+    actor: dict,
+    *,
+    tolerance: float = 0.10,
+) -> list[str]:
+    """Compare a trained checkpoint with the actor that produced its data."""
+
+    alarms: list[str] = []
+    for key, label in (
+        ("value_accuracy", "tactical value accuracy"),
+        ("policy_accuracy", "tactical policy accuracy"),
+    ):
+        if current[key] + tolerance < actor[key]:
+            alarms.append(
+                f"{label} declined from {actor[key]:.3f} to {current[key]:.3f}"
+            )
+    if current["mean_color_swap_absolute_error"] > 1e-5:
+        alarms.append("color-swap consistency invariant failed")
+    return alarms
+
+
 def run_learning_loop(
     config: LoopConfig,
     run_dir: str | Path,
@@ -214,7 +236,6 @@ def run_learning_loop(
     replay = ReplayBuffer(config.replay_capacity, config.seed)
     total_fresh_positions = 0
     total_examples_presented = 0
-    previous_tactical_accuracy: float | None = None
     run_started = time.perf_counter()
 
     for iteration in range(config.iterations):
@@ -297,6 +318,11 @@ def run_learning_loop(
         network.save(checkpoint_dir / "latest.keras")
         tactics = evaluate_tactical_suite(network) if config.board_size == 5 else None
         previous_network = GameNetwork.load(actor_checkpoint)
+        actor_tactics = (
+            evaluate_tactical_suite(previous_network)
+            if config.board_size == 5
+            else None
+        )
 
         def latest_factory():
             return PUCTPlayer(
@@ -340,13 +366,8 @@ def run_learning_loop(
                 f"regression arena had {regression_arena['failures']} failed games"
             )
         alarms.extend(regression_arena["alarms"])
-        if tactics is not None:
-            current_accuracy = tactics["value_accuracy"]
-            if previous_tactical_accuracy is not None and current_accuracy + 0.1 < previous_tactical_accuracy:
-                alarms.append("tactical value accuracy declined by more than 0.10")
-            if tactics["mean_color_swap_absolute_error"] > 1e-5:
-                alarms.append("color-swap consistency invariant failed")
-            previous_tactical_accuracy = current_accuracy
+        if tactics is not None and actor_tactics is not None:
+            alarms.extend(_tactical_decline_alarms(tactics, actor_tactics))
 
         elapsed = time.perf_counter() - iteration_started
         metric = {
@@ -373,6 +394,7 @@ def run_learning_loop(
             "policy_kl": _policy_kl(network, last_x, last_p),
             "symmetry_duplicates_removed": duplicate_count,
             "positions_per_second": len(fresh) / max(elapsed, 1e-9),
+            "actor_tactical": actor_tactics,
             "tactical": tactics,
             "regression_arena": regression_summary,
             "alarms": alarms,

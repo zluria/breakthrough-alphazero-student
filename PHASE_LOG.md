@@ -10,7 +10,7 @@
 
 - Date: 2026-08-23
 - Command: bundled Python 3.12 `unittest` discovery with `src` on the import path.
-- Current result: 34 tests discovered; 32 pass locally and two TensorFlow-only tests skip because the bundled local runtime does not include TensorFlow. Keras save/load passed in the Slurm smoke gate; the later-added native 5x5/8x8 shape test must run in the next TensorFlow Slurm gate.
+- Current result: 35 tests discovered; 33 pass locally and two TensorFlow-only tests skip because the bundled local runtime does not include TensorFlow. All 35 pass in the TensorFlow Slurm environment.
 - Sanity checks: independent rule generator, exact make/unmake restoration, captures and straight restrictions, terminal goal and no-reply handling, no terminal turn switch, all legal policy round trips, symmetry involutions/commutation, and alpha-beta versus brute-force solving.
 - Review: board remains a flat list; no bitboards, padding, caches, or search-specific state leaked into the rules.
 
@@ -44,6 +44,9 @@
 - Across eight epochs, final training policy/value losses were 2.2304/0.7463 and validation policy/value losses were 2.2332/0.7462. Validation value loss was lowest one epoch earlier at 0.7402, so the small final increase is recorded rather than hidden.
 - Tactical value-sign accuracy was 0.8333, tactical policy accuracy 1.0000, and player-swap error exactly 0.0. The previously tracked forced-defense position remained pessimistically valued (`-0.2213`) while the network still ranked its unique defense first for both colors.
 - The 1,690,922-byte checkpoint is preserved locally and on the HPC at `checkpoints/pretrained-5x5.keras`, SHA-256 `2f2c4ab5e794c78b9ec769cc0083252ce836326e896573b7ba8a2e69dcf269eb`. It is eligible as a training initializer but is not yet claimed as a strong playable agent.
+- Learning attempt 33973 was cancelled deliberately after its first saved metric. Iteration 0 produced 762 fresh positions, replay consumption 3.141, zero swap error, no arena failures, and a 9/12 score against its actor, but tactical value-sign accuracy declined from the pretrained 0.8333 to 0.6667.
+- The attempt exposed an alarm blind spot: the loop initialized its tactical comparison after iteration 0, so it did not compare the first learned checkpoint with the pretrained actor. The cancelled weights and raw records remain quarantined under `results/phase4/attempt-33973` on the HPC; only the metric, log, and failure summary are tracked.
+- Corrective action: every checkpoint is now compared directly with the actor that generated its data for both tactical value and policy accuracy, including iteration 0. A regression test reproduces the missed 0.833-to-0.667 decline. The canonical 5x5 loop reduces training from 32 to 8 batches per tranche, moving intended first-tranche example consumption from about 3.14 to 0.79 per newly added raw position without changing search, games, replay capacity, network, or optimizer.
 
 ## Phases 5-7 - pending
 

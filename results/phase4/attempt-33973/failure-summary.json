@@ -1,0 +1,19 @@
+{
+  "slurm_job_id": 33973,
+  "state": "CANCELLED",
+  "elapsed": "00:07:22",
+  "node": "HPC-RTX2080s-01",
+  "source_commit": "a23d351cc9325c30fa47600203418b203c1f42f0",
+  "last_complete_iteration": 0,
+  "fresh_games": 64,
+  "fresh_positions": 762,
+  "replay_positions_added": 652,
+  "examples_presented": 2048,
+  "replay_consumption_ratio": 3.1411042944785277,
+  "actor_tactical_value_accuracy": 0.8333333333333334,
+  "learned_tactical_value_accuracy": 0.6666666666666666,
+  "learned_tactical_policy_accuracy": 1.0,
+  "mean_color_swap_absolute_error": 0.0,
+  "regression_arena_score": "9/12",
+  "decision": "stop, preserve evidence, fix first-iteration actor comparison, and reduce train steps"
+}

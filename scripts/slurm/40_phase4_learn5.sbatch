@@ -13,6 +13,7 @@ PROJECT_DIR="$(pwd)"
 export PYTHONPATH="$PROJECT_DIR/src"
 
 mkdir -p results/slurm results/phase4
+conda run -n zur_env python -m unittest discover -s tests -v
 conda run -n zur_env python -m breakthrough_zero.cli learn \
   --config configs/learn-5x5.json \
   --run-dir results/phase4/learn-5x5 \

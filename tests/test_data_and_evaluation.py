@@ -22,6 +22,7 @@ from breakthrough_zero.evaluation import (
 from breakthrough_zero.game import Breakthrough
 from breakthrough_zero.puct import PUCTPlayer, RolloutEvaluator
 from breakthrough_zero.replay import ReplayBuffer, records_to_training_arrays
+from breakthrough_zero.training import _tactical_decline_alarms
 
 
 def sample_record() -> PositionRecord:
@@ -99,6 +100,21 @@ class DataTests(unittest.TestCase):
             self.assertEqual(set(record.legal_actions), set(state.legal_actions()))
             self.assertEqual(sum(record.visit_counts), 2)
             self.assertEqual(record.root_visits, 2)
+
+    def test_first_iteration_tactical_decline_is_compared_with_actor(self) -> None:
+        actor = {
+            "value_accuracy": 5 / 6,
+            "policy_accuracy": 1.0,
+            "mean_color_swap_absolute_error": 0.0,
+        }
+        current = {
+            "value_accuracy": 4 / 6,
+            "policy_accuracy": 5 / 6,
+            "mean_color_swap_absolute_error": 0.0,
+        }
+        alarms = _tactical_decline_alarms(current, actor)
+        self.assertEqual(len(alarms), 2)
+        self.assertIn("0.833 to 0.667", alarms[0])
 
 
 class EvaluationTests(unittest.TestCase):
