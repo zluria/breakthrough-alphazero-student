@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import hashlib
 import json
 from pathlib import Path
 import time
@@ -16,6 +17,14 @@ from .game import Breakthrough
 from .neural import GameNetwork, NeuralBoundary
 from .puct import NeuralEvaluator, PUCTPlayer, RolloutEvaluator
 from .replay import ReplayBuffer, records_to_training_arrays
+
+
+def _sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True)
@@ -66,6 +75,7 @@ def generate_pretraining_data(config: PretrainingConfig, output_path: str | Path
         "player1_wins": p1_wins,
         "elapsed_s": time.perf_counter() - started,
         "output": str(output_path),
+        "output_sha256": _sha256(output_path),
     }
 
 
@@ -81,6 +91,9 @@ def train_pretrained_network(
 ) -> dict:
     """Train MSE value and cross-entropy policy heads from dummy-MCTS data."""
 
+    output_path = Path(output_path)
+    if output_path.exists():
+        raise FileExistsError(f"refusing to overwrite a checkpoint: {output_path}")
     records = list(read_records(data_path))
     if not records:
         raise ValueError("pretraining data is empty")
@@ -122,6 +135,7 @@ def train_pretrained_network(
     return {
         "data": str(data_path),
         "checkpoint": str(output_path),
+        "checkpoint_sha256": _sha256(output_path),
         "records": len(records),
         "network": {"filters": filters, "residual_blocks": residual_blocks},
         "training_conversion": training_conversion,
@@ -368,10 +382,12 @@ def run_learning_loop(
         if alarms:
             raise RuntimeError("; ".join(alarms))
 
+    latest_checkpoint = checkpoint_dir / "latest.keras"
     return {
         "config": asdict(config),
         "iterations_completed": config.iterations,
         "elapsed_s": time.perf_counter() - run_started,
-        "latest_checkpoint": str(checkpoint_dir / "latest.keras"),
+        "latest_checkpoint": str(latest_checkpoint),
+        "latest_checkpoint_sha256": _sha256(latest_checkpoint),
         "metrics": str(metric_path),
     }
