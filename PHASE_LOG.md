@@ -10,7 +10,7 @@
 
 - Date: 2026-08-23
 - Command: bundled Python 3.12 `unittest` discovery with `src` on the import path.
-- Current simplified-code result: 36 tests discovered; 34 pass locally and two TensorFlow-only tests skip because the bundled local runtime does not include TensorFlow. The earlier pre-refactor code passed 35 tests in Slurm, but that does not certify the rewrite; a fresh TensorFlow gate is required before training resumes.
+- Current simplified-code result: 36 tests discovered; 34 pass locally and two TensorFlow-only tests skip because the bundled local runtime does not include TensorFlow. All 36 pass in Slurm job 33976 with TensorFlow 2.14 on an RTX 2080 SUPER, including Keras save/load and native 5x5/8x8 shapes.
 - Sanity checks: independent rule generator, exact make/unmake restoration, captures and straight restrictions, terminal goal and no-reply handling, no terminal turn switch, all legal policy round trips, symmetry involutions/commutation, and alpha-beta versus brute-force solving.
 - Review: board remains a flat list; no bitboards, padding, caches, or search-specific state leaked into the rules.
 
@@ -49,13 +49,14 @@
 - Corrective action: every checkpoint is now compared directly with the actor that generated its data for both tactical value and policy accuracy, including iteration 0. A regression test reproduces the missed 0.833-to-0.667 decline. The canonical 5x5 loop reduces training from 32 to 8 batches per tranche, moving intended first-tranche example consumption from about 3.14 to 0.79 per newly added raw position without changing search, games, replay capacity, network, or optimizer.
 - Corrected job 33974 passed the pre-refactor 35-test TensorFlow startup gate, then was cancelled after 4 minutes 54 seconds when the code-simplicity requirement was elevated to a hard gate. It is not a completed learning attempt and no weights from it are eligible for evaluation.
 
-## Introductory-Python simplicity refactor - passed locally; TensorFlow gate pending
+## Introductory-Python simplicity refactor - passed locally and on HPC
 
 - Removed `from __future__`, all annotations, dataclasses, protocols, properties, class/static methods, custom decorators, callable magic methods, lambdas, `Path`, deques, and custom record/result classes from source and tests.
 - Replaced moves and undo history with tuples; records, predictions, search results, games, metrics, and reports with dictionaries; symmetries with four `(swap, reflect)` tuples and ordinary functions; replay with a bounded list of `(record, iteration)` tuples.
 - Removed arena agent factories and evaluator `__call__` methods. Arenas receive two ordinary agents; evaluators expose an explicit `evaluate` method.
-- All 35 behavior tests retain their original coverage, and a 36th test prevents the banned language features from returning to the teaching source. All pass/skip locally. A two-game/four-visit end-to-end CLI smoke reproduced 49 positions and exactly four mean root visits. The preserved 10,000-game corpus still loads through the simplified dictionary format with the original 10,000 games, 121,565 positions, and 100 mean root visits.
-- No AlphaZero training may resume until the simplified code passes the full TensorFlow Slurm test gate and the code is reviewed once more for unnecessary indirection.
+- All 35 behavior tests retain their original coverage, and a 36th test prevents the banned language features from returning to the teaching source. All 36 passed in Slurm job 33976. The same job's two-game/four-visit end-to-end CLI smoke reproduced 49 positions and exactly four mean root visits. The preserved 10,000-game corpus still loads through the simplified dictionary format with the original 10,000 games, 121,565 positions, and 100 mean root visits.
+- Job 33975 failed before importing the project because it was submitted from the HPC home directory and therefore could not find `tests/`. Job 33976 used the project directory explicitly and completed in nine seconds with exit code zero. This is recorded as an invocation failure, not a code-test failure.
+- The full source was reviewed again after the refactor. No unnecessary indirection found in that pass blocks the introductory-course requirement. The learning loop remains stopped at this milestone rather than being restarted as part of the simplicity change.
 
 ## Phases 5-7 - pending
 

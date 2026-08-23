@@ -6,8 +6,8 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 
 | Gate | Board | Result | Evidence |
 |---|---:|---|---|
-| Simplified rules/search/data/evaluation/style tests | 5x5 and 8x8 | 36 discovered: 34 pass locally, 2 TensorFlow-only skips | Local rewrite gate; fresh TensorFlow Slurm gate pending |
-| Keras save/load | 5x5 | Pass | Slurm job 33967, TensorFlow 2.14 on RTX 2080 SUPER |
+| Simplified rules/search/data/evaluation/style tests | 5x5 and 8x8 | 36/36 pass on HPC; 34 pass and 2 TensorFlow-only skips locally | Slurm job 33976 and local rewrite gate |
+| Keras save/load | 5x5 | Pass after simplicity rewrite | Slurm job 33976, TensorFlow 2.14 on RTX 2080 SUPER |
 | Dummy-MCTS data smoke | 5x5 | 2 games, 49 positions, 4 visits/root | Slurm job 33967 |
 | Solver-supervised diagnostic, attempt 1 | 5x5 | Rejected: memorized training data, 0.0 tactical value accuracy | Slurm job 33968 |
 | Solver-supervised diagnostic, revised | 5x5 | Pass: held-out value 90.2%, policy 60.0%; tactical value 83.3%, policy 100%; swap error 0 | Slurm job 33969 |
