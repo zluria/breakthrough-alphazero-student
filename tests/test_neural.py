@@ -103,6 +103,15 @@ class NeuralBoundaryTests(unittest.TestCase):
         self.assertAlmostEqual(before[1], after[1], places=6)
         self.assertEqual(int(loaded.model.optimizer.iterations.numpy()), optimizer_step)
 
+    @unittest.skipUnless(importlib.util.find_spec("tensorflow"), "TensorFlow not installed")
+    def test_native_network_shapes_are_never_padded(self) -> None:
+        small = GameNetwork(5, filters=8, residual_blocks=1)
+        standard = GameNetwork(8, filters=8, residual_blocks=1)
+        self.assertEqual(small.model.input_shape, (None, 5, 5, 2))
+        self.assertEqual(standard.model.input_shape, (None, 8, 8, 2))
+        self.assertEqual(small.model.output["policy"].shape[-1], 75)
+        self.assertEqual(standard.model.output["policy"].shape[-1], 192)
+
 
 if __name__ == "__main__":
     unittest.main()

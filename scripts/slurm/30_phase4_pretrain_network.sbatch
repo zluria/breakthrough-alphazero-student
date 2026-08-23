@@ -13,6 +13,7 @@ PROJECT_DIR="$(pwd)"
 export PYTHONPATH="$PROJECT_DIR/src"
 
 mkdir -p results/slurm results/phase4 checkpoints
+conda run -n zur_env python -m unittest discover -s tests -v
 conda run -n zur_env python -m breakthrough_zero.cli pretrain-network \
   --data data/raw/pretraining-5x5-10000.jsonl.gz \
   --output checkpoints/pretrained-5x5.keras \
