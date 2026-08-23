@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A compact, student-readable AlphaZero-style engine for Breakthrough"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["numpy>=1.26"]
+dependencies = ["numpy>=1.23.5,<2"]
 
 [project.optional-dependencies]
 train = ["tensorflow>=2.14,<2.19"]
