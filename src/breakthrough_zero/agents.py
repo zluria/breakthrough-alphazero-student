@@ -1,36 +1,38 @@
-"""Trusted, intentionally simple baseline agents."""
+"""Small baseline agents written with ordinary Python control flow."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass
 import math
 import random
 import time
 
-from .game import Breakthrough, Move, PLAYER_1
+from .game import PLAYER_1
 
 
 class RandomAgent:
-    def __init__(self, seed: int = 0) -> None:
-        self.rng = random.Random(seed)
+    def __init__(self, seed=0):
+        self.random = random.Random(seed)
 
-    def choose_move(self, game: Breakthrough) -> Move:
+    def choose_move(self, game):
         moves = game.legal_moves()
         if not moves:
             raise ValueError("position has no legal move")
-        return self.rng.choice(moves)
+        return self.random.choice(moves)
 
 
-class TacticalRolloutAgent(RandomAgent):
-    """Prefer an immediate win, then a capture, then a seeded random move."""
+class TacticalRolloutAgent:
+    """Choose a win, then a capture, then a random legal move."""
 
-    def choose_move(self, game: Breakthrough) -> Move:
+    def __init__(self, seed=0):
+        self.random = random.Random(seed)
+
+    def choose_move(self, game):
         moves = game.legal_moves()
         if not moves:
             raise ValueError("position has no legal move")
-        captures: list[Move] = []
+
+        captures = []
         for move in moves:
-            is_capture = game.board[move.to_sq] == -game.player_to_move
+            to_square = move[1]
+            is_capture = game.board[to_square] == -game.player_to_move
             game.make_move(move)
             won = game.status() is not None
             game.unmake_move(move)
@@ -38,158 +40,189 @@ class TacticalRolloutAgent(RandomAgent):
                 return move
             if is_capture:
                 captures.append(move)
-        return self.rng.choice(captures or moves)
+
+        if captures:
+            return self.random.choice(captures)
+        return self.random.choice(moves)
 
 
-def rollout_outcome(game: Breakthrough, rng: random.Random, tactical: bool = False) -> int:
-    """Play a complete seeded rollout and return an absolute Player-1 outcome."""
+def rollout_outcome(game, random_generator, tactical=False):
+    """Play to the end and return 1 for Player 1 or -1 for Player 2."""
 
     state = game.clone()
-    agent = TacticalRolloutAgent() if tactical else None
-    if agent is not None:
-        agent.rng = rng
+    tactical_agent = None
+    if tactical:
+        tactical_agent = TacticalRolloutAgent()
+        tactical_agent.random = random_generator
+
     while state.status() is None:
-        moves = state.legal_moves()
-        move = agent.choose_move(state) if agent is not None else rng.choice(moves)
+        if tactical_agent is None:
+            move = random_generator.choice(state.legal_moves())
+        else:
+            move = tactical_agent.choose_move(state)
         state.make_move(move)
-    return int(state.status())
-
-
-@dataclass
-class SearchStats:
-    nodes: int = 0
-    completed_depth: int = 0
+    return state.status()
 
 
 class AlphaBetaAgent:
-    """Small alpha-beta baseline whose scores are absolute for Player 1."""
+    """A readable alpha-beta player with absolute Player-1 scores."""
 
-    def __init__(self, depth: int = 4, time_limit_s: float | None = None) -> None:
+    def __init__(self, depth=4, time_limit_s=None):
         if depth < 1:
             raise ValueError("depth must be positive")
         self.depth = depth
         self.time_limit_s = time_limit_s
-        self.stats = SearchStats()
-        self._deadline = math.inf
+        self.stats = {"nodes": 0, "completed_depth": 0}
+        self.deadline = math.inf
 
-    def choose_move(self, game: Breakthrough) -> Move:
+    def choose_move(self, game):
         moves = game.legal_moves()
         if not moves:
             raise ValueError("position has no legal move")
-        self.stats = SearchStats()
-        self._deadline = (
-            time.perf_counter() + self.time_limit_s
-            if self.time_limit_s is not None
-            else math.inf
-        )
+
+        self.stats = {"nodes": 0, "completed_depth": 0}
+        if self.time_limit_s is None:
+            self.deadline = math.inf
+            maximum_depth = self.depth
+        else:
+            self.deadline = time.perf_counter() + self.time_limit_s
+            maximum_depth = 100
+
         best_move = moves[0]
-        max_depth = self.depth if self.time_limit_s is None else 100
-        for depth in range(1, max_depth + 1):
+        for depth in range(1, maximum_depth + 1):
             try:
-                _, move = self.search(game, depth)
+                value, move = self.search(game, depth)
             except TimeoutError:
                 break
             best_move = move
-            self.stats.completed_depth = depth
+            self.stats["completed_depth"] = depth
         return best_move
 
-    def search(self, game: Breakthrough, depth: int | None = None) -> tuple[float, Move]:
-        depth = self.depth if depth is None else depth
-        value, move = self._alphabeta(game, depth, -math.inf, math.inf)
+    def search(self, game, depth=None):
+        if depth is None:
+            depth = self.depth
+        value, move = self.alpha_beta(game, depth, -math.inf, math.inf)
         if move is None:
             raise ValueError("position has no legal move")
         return value, move
 
-    def _alphabeta(
-        self, game: Breakthrough, depth: int, alpha: float, beta: float
-    ) -> tuple[float, Move | None]:
-        if time.perf_counter() >= self._deadline:
+    def alpha_beta(self, game, depth, alpha, beta):
+        if time.perf_counter() >= self.deadline:
             raise TimeoutError
-        self.stats.nodes += 1
-        outcome = game.status()
-        if outcome is not None:
-            return float(outcome), None
-        if depth == 0:
-            return self.evaluate(game), None
 
-        moves = self._ordered_moves(game)
+        self.stats["nodes"] += 1
+        if game.status() is not None:
+            return float(game.status()), None
+        if depth == 0:
+            return evaluate_position(game), None
+
+        moves = ordered_moves(game)
+        best_move = moves[0]
+
         if game.player_to_move == PLAYER_1:
             best_value = -math.inf
-            best_move = moves[0]
             for move in moves:
                 game.make_move(move)
                 try:
-                    value, _ = self._alphabeta(game, depth - 1, alpha, beta)
+                    value, unused_move = self.alpha_beta(
+                        game, depth - 1, alpha, beta
+                    )
                 finally:
                     game.unmake_move(move)
                 if value > best_value:
-                    best_value, best_move = value, move
-                alpha = max(alpha, best_value)
+                    best_value = value
+                    best_move = move
+                if best_value > alpha:
+                    alpha = best_value
                 if alpha >= beta:
                     break
         else:
             best_value = math.inf
-            best_move = moves[0]
             for move in moves:
                 game.make_move(move)
                 try:
-                    value, _ = self._alphabeta(game, depth - 1, alpha, beta)
+                    value, unused_move = self.alpha_beta(
+                        game, depth - 1, alpha, beta
+                    )
                 finally:
                     game.unmake_move(move)
                 if value < best_value:
-                    best_value, best_move = value, move
-                beta = min(beta, best_value)
+                    best_value = value
+                    best_move = move
+                if best_value < beta:
+                    beta = best_value
                 if alpha >= beta:
                     break
+
         return best_value, best_move
 
-    @staticmethod
-    def _ordered_moves(game: Breakthrough) -> list[Move]:
-        """Immediate goals and captures first; stable indices break ties."""
 
-        player = game.player_to_move
-        goal = game.board_size - 1 if player == PLAYER_1 else 0
+def ordered_moves(game):
+    """Put goal moves and captures first."""
 
-        def key(move: Move) -> tuple[int, int, int]:
-            row, _ = game.row_col(move.to_sq)
-            wins = int(row == goal)
-            captures = int(game.board[move.to_sq] == -player)
-            return (-wins, -captures, move.from_sq * game.board_size**2 + move.to_sq)
+    player = game.player_to_move
+    if player == PLAYER_1:
+        goal_row = game.board_size - 1
+    else:
+        goal_row = 0
 
-        return sorted(game.legal_moves(), key=key)
+    def order_key(move):
+        to_row, unused_col = game.row_col(move[1])
+        wins = int(to_row == goal_row)
+        captures = int(game.board[move[1]] == -player)
+        stable_number = move[0] * game.board_size * game.board_size + move[1]
+        return (-wins, -captures, stable_number)
 
-    @staticmethod
-    def evaluate(game: Breakthrough) -> float:
-        size = game.board_size
-        p1 = [game.row_col(i)[0] for i, piece in enumerate(game.board) if piece == 1]
-        p2 = [game.row_col(i)[0] for i, piece in enumerate(game.board) if piece == -1]
-        material = (len(p1) - len(p2)) / max(1, size)
-        progress = (sum(p1) - sum(size - 1 - row for row in p2)) / max(1, size**2)
-        mobility = (
-            len(game._legal_moves_for(1)) - len(game._legal_moves_for(-1))
-        ) / max(1, 3 * size)
-        return float(max(-0.99, min(0.99, 0.55 * material + 0.35 * progress + 0.1 * mobility)))
+    return sorted(game.legal_moves(), key=order_key)
 
 
-def solve_exact(game: Breakthrough, cache: dict | None = None) -> int:
-    """Brute-force a tractable position, returning its absolute outcome."""
+def evaluate_position(game):
+    """A small material, progress, and mobility evaluation."""
+
+    size = game.board_size
+    player_1_rows = []
+    player_2_rows = []
+    for square in range(len(game.board)):
+        row, unused_col = game.row_col(square)
+        if game.board[square] == 1:
+            player_1_rows.append(row)
+        if game.board[square] == -1:
+            player_2_rows.append(row)
+
+    material = (len(player_1_rows) - len(player_2_rows)) / max(1, size)
+    player_1_progress = sum(player_1_rows)
+    player_2_progress = 0
+    for row in player_2_rows:
+        player_2_progress += size - 1 - row
+    progress = (player_1_progress - player_2_progress) / max(1, size * size)
+    mobility = (
+        len(game.legal_moves_for(1)) - len(game.legal_moves_for(-1))
+    ) / max(1, 3 * size)
+
+    value = 0.55 * material + 0.35 * progress + 0.10 * mobility
+    return max(-0.99, min(0.99, value))
+
+
+def solve_exact(game, cache=None):
+    """Solve a small position by trying every continuation."""
 
     if cache is None:
         cache = {}
-    outcome = game.status()
-    if outcome is not None:
-        return int(outcome)
+    if game.status() is not None:
+        return game.status()
+
     key = (tuple(game.board), game.player_to_move)
     if key in cache:
         return cache[key]
-    desired = game.player_to_move
-    fallback = -desired
+
+    desired_result = game.player_to_move
     for move in game.legal_moves():
         game.make_move(move)
-        value = solve_exact(game, cache)
+        result = solve_exact(game, cache)
         game.unmake_move(move)
-        if value == desired:
-            cache[key] = desired
-            return desired
-    cache[key] = fallback
-    return fallback
+        if result == desired_result:
+            cache[key] = desired_result
+            return desired_result
+
+    cache[key] = -desired_result
+    return -desired_result

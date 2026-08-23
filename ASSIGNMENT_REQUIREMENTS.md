@@ -39,3 +39,5 @@ The course handout calls the neural value a win probability, while the requested
 
 The wording of the supplied Breakthrough rules permits diagonal steps into empty squares as well as diagonal captures. The implementation follows that wording. Straight moves into occupied squares remain illegal.
 
+The project specification also makes introductory-course Python a hard requirement. The implementation therefore avoids postponed annotations, dataclasses, protocols, advanced typing, clever record types, and factory abstractions. It uses tuple moves/history, dictionary records/results, direct functions, and only a few stateful classes.
+

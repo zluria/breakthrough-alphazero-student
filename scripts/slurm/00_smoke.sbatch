@@ -16,7 +16,7 @@ mkdir -p results/slurm results/smoke data/raw
 conda run -n zur_env python -m unittest discover -s tests -v
 conda run -n zur_env python -m breakthrough_zero.cli pretrain-data \
   --config configs/smoke-pretrain.json \
-  --output data/raw/smoke-pretraining.jsonl.gz \
-  --report results/smoke/pretraining-report.json
+  --output "data/raw/smoke-pretraining-${SLURM_JOB_ID}.jsonl.gz" \
+  --report "results/smoke/pretraining-${SLURM_JOB_ID}-report.json"
 conda run -n zur_env python -m breakthrough_zero.cli inspect-data \
-  --data data/raw/smoke-pretraining.jsonl.gz
+  --data "data/raw/smoke-pretraining-${SLURM_JOB_ID}.jsonl.gz"

@@ -4,7 +4,7 @@
 
 This project develops a compact AlphaZero-style engine for Breakthrough. Correctness is established in stages: a flat-list rules implementation is checked against an independent move generator; alpha-beta is checked against brute force; a two-plane mover-relative CNN is isolated behind one absolute-value conversion boundary; PUCT is tested with an assignment-prescribed dummy evaluator before being connected to the CNN. Training uses root visit counts for the policy target and final outcomes for the value target. The final study compares agents under reproducible, color-paired opening prefixes and equal wall-clock move budgets.
 
-The final numerical summary is inserted only from completed JSON and Slurm artifacts. The local suite discovers 35 tests (33 pass and two TensorFlow-only tests skip locally); all 35 pass in the TensorFlow HPC environment, including Keras save/load and separate native network shapes. The revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy, 100% tactical policy accuracy, and exact player-swap consistency. The assignment's dummy-PUCT stage completed 10,000 games and 121,565 reconstructable positions with exactly 100 mean root visits. Neural pretraining on a whole-game split finished with validation policy/value losses of 2.233/0.746 and retained 83.3%/100% tactical value/policy accuracy with zero swap error.
+The final numerical summary is inserted only from completed JSON and Slurm artifacts. The simplified local suite discovers 36 tests (34 pass and two TensorFlow-only tests skip locally); a fresh TensorFlow gate is required before training resumes. Before the language-level rewrite, the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy, 100% tactical policy accuracy, and exact player-swap consistency. The assignment's dummy-PUCT stage completed 10,000 games and 121,565 reconstructable positions with exactly 100 mean root visits. Neural pretraining on a whole-game split finished with validation policy/value losses of 2.233/0.746 and retained 83.3%/100% tactical value/policy accuracy with zero swap error. Those artifacts remain evidence, but the rewritten loader and network must pass their own TensorFlow regression gate.
 
 ## 1. Assignment and scope
 
@@ -16,7 +16,7 @@ The implementation begins with a native 5x5, one-row diagnostic game and later t
 
 The board is an ordinary row-major Python list. Player 1 starts at the top and advances toward the last row; Player 2 starts at the bottom and advances toward row zero. A pawn may step straight forward into an empty square, step diagonally forward into an empty square, or capture an opponent by a diagonal step. Reaching the opposite edge wins. A player unable to reply loses.
 
-Moves use a pair of compact square indices. `make_move` records only the moved square, captured piece, previous player, and previous winner. `unmake_move` restores those fields exactly. A terminal move deliberately leaves `player_to_move` equal to the mover, which prevents terminal state reporting from pretending that a losing reply turn began.
+Moves are ordinary two-item tuples of compact square indices. `make_move` appends one tuple containing the move, captured piece, previous player, and previous winner. `unmake_move` restores those fields directly. A terminal move deliberately leaves `player_to_move` equal to the mover, which prevents terminal state reporting from pretending that a losing reply turn began.
 
 The public API contains the assignment names: `make_move`, `unmake_move`, `clone`, `encode`, `decode`, `status`, `outcome`, and `legal_moves`.
 
@@ -61,7 +61,7 @@ The assignment's dummy evaluator gives every legal action a uniform prior and ob
 
 ## 6. Data and training
 
-Every raw position record preserves the absolute board, mover, legal relative actions, visit counts, priors, root value, root visits, requested and completed search effort, elapsed search time, played action, seed, and final absolute outcome. Alternative policy temperatures, symmetry choices, and value targets can therefore be reconstructed later.
+Every raw position is a plain dictionary preserving the absolute board, mover, legal relative actions, visit counts, priors, root value, root visits, requested and completed search effort, elapsed search time, played action, seed, and final absolute outcome. Alternative policy temperatures, symmetry choices, and value targets can therefore be reconstructed later.
 
 The four exact game transformations combine player swap with left-right reflection. Player swap can create a neural tensor identical to the original canonical tensor; exact per-position hashing removes that duplicate so it is not accidentally overweighted.
 

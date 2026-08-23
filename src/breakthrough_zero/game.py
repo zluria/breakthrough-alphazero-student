@@ -1,61 +1,34 @@
-"""Rules for Breakthrough.
+"""Simple Breakthrough rules on a flat Python list.
 
-The board is deliberately an ordinary flat Python list. Rows grow in Player 1's
-forward direction. Player 1 therefore moves toward the last row; Player 2 moves
-toward row zero.
+A move is a tuple: ``(from_square, to_square)``. Squares are ordinary
+zero-based indices into ``board``.
 """
 
-from __future__ import annotations
-
-from dataclasses import dataclass
-from typing import Iterable
-
 import numpy as np
+
 
 EMPTY = 0
 PLAYER_1 = 1
 PLAYER_2 = -1
-ONGOING = None
-
-
-@dataclass(frozen=True, order=True)
-class Move:
-    """A move between two compact, zero-based square indices."""
-
-    from_sq: int
-    to_sq: int
-
-
-@dataclass(frozen=True)
-class _Undo:
-    move: Move
-    captured: int
-    previous_player: int
-    previous_winner: int | None
 
 
 class Breakthrough:
-    """Mutable Breakthrough position with readable make/unmake operations.
-
-    ``status()`` returns ``1`` for a Player-1 win, ``-1`` for a Player-2 win,
-    and ``None`` while play is ongoing. A terminal move intentionally leaves
-    ``player_to_move`` equal to the player who made that move.
-    """
-
     def __init__(
         self,
-        board_size: int = 5,
-        starting_rows: int | None = None,
-        *,
-        board: Iterable[int] | None = None,
-        player_to_move: int = PLAYER_1,
-        winner: int | None = None,
-    ) -> None:
+        board_size=5,
+        starting_rows=None,
+        board=None,
+        player_to_move=PLAYER_1,
+        winner=None,
+    ):
         if board_size < 3:
             raise ValueError("board_size must be at least 3")
         if starting_rows is None:
-            starting_rows = 2 if board_size == 8 else 1
-        if not 1 <= starting_rows < board_size / 2:
+            if board_size == 8:
+                starting_rows = 2
+            else:
+                starting_rows = 1
+        if starting_rows < 1 or starting_rows >= board_size / 2:
             raise ValueError("starting_rows must leave space between the armies")
         if player_to_move not in (PLAYER_1, PLAYER_2):
             raise ValueError("player_to_move must be 1 or -1")
@@ -64,211 +37,198 @@ class Breakthrough:
         self.starting_rows = starting_rows
         self.player_to_move = player_to_move
         self.winner = winner
-        self._history: list[_Undo] = []
+        self.action_size = board_size * board_size * 3
+        self.history = []
 
-        if board is None:
-            self.board = [EMPTY] * (board_size * board_size)
-            for row in range(starting_rows):
-                for col in range(board_size):
-                    self.board[self.square(row, col)] = PLAYER_1
-                    self.board[self.square(board_size - 1 - row, col)] = PLAYER_2
-        else:
+        if board is not None:
             self.board = list(board)
             if len(self.board) != board_size * board_size:
                 raise ValueError("board has the wrong number of squares")
-            if any(piece not in (PLAYER_2, EMPTY, PLAYER_1) for piece in self.board):
-                raise ValueError("board entries must be -1, 0, or 1")
+            for piece in self.board:
+                if piece not in (PLAYER_2, EMPTY, PLAYER_1):
+                    raise ValueError("board entries must be -1, 0, or 1")
+            return
 
-    @property
-    def action_size(self) -> int:
-        """Number of relative policy outputs: one origin and three directions."""
+        self.board = [EMPTY] * (board_size * board_size)
+        for row in range(starting_rows):
+            for col in range(board_size):
+                self.board[self.square(row, col)] = PLAYER_1
+                other_row = board_size - 1 - row
+                self.board[self.square(other_row, col)] = PLAYER_2
 
-        return self.board_size * self.board_size * 3
-
-    def square(self, row: int, col: int) -> int:
+    def square(self, row, col):
         return row * self.board_size + col
 
-    def row_col(self, square: int) -> tuple[int, int]:
+    def row_col(self, square):
         return divmod(square, self.board_size)
 
-    def clone(self) -> "Breakthrough":
-        clone = Breakthrough(
+    def clone(self):
+        copy = Breakthrough(
             self.board_size,
             self.starting_rows,
-            board=self.board,
-            player_to_move=self.player_to_move,
-            winner=self.winner,
+            self.board,
+            self.player_to_move,
+            self.winner,
         )
-        clone._history = self._history.copy()
-        return clone
+        copy.history = list(self.history)
+        return copy
 
-    def legal_moves(self) -> list[Move]:
+    def legal_moves(self):
         if self.winner is not None:
             return []
-        return self._legal_moves_for(self.player_to_move)
+        return self.legal_moves_for(self.player_to_move)
 
-    def _legal_moves_for(self, player: int) -> list[Move]:
-        size = self.board_size
-        forward = 1 if player == PLAYER_1 else -1
-        moves: list[Move] = []
-        for from_sq, piece in enumerate(self.board):
-            if piece != player:
+    def legal_moves_for(self, player):
+        moves = []
+        if player == PLAYER_1:
+            forward = 1
+        else:
+            forward = -1
+
+        for from_square in range(len(self.board)):
+            if self.board[from_square] != player:
                 continue
-            row, col = self.row_col(from_sq)
-            to_row = row + forward
-            if not 0 <= to_row < size:
+            row, col = self.row_col(from_square)
+            next_row = row + forward
+            if next_row < 0 or next_row >= self.board_size:
                 continue
-            for delta_col in (-1, 0, 1):
-                to_col = col + delta_col
-                if not 0 <= to_col < size:
+
+            for col_change in (-1, 0, 1):
+                next_col = col + col_change
+                if next_col < 0 or next_col >= self.board_size:
                     continue
-                to_sq = self.square(to_row, to_col)
-                target = self.board[to_sq]
-                if delta_col == 0:
-                    if target == EMPTY:
-                        moves.append(Move(from_sq, to_sq))
-                elif target != player:
-                    # Diagonal steps may enter an empty square or capture an enemy.
-                    moves.append(Move(from_sq, to_sq))
+                to_square = self.square(next_row, next_col)
+                target = self.board[to_square]
+                if col_change == 0 and target == EMPTY:
+                    moves.append((from_square, to_square))
+                if col_change != 0 and target != player:
+                    moves.append((from_square, to_square))
         return moves
 
-    def make_move(self, move: Move) -> None:
+    def make_move(self, move):
         if self.winner is not None:
             raise ValueError("cannot move after the game is over")
         if move not in self.legal_moves():
-            raise ValueError(f"illegal move: {move}")
+            raise ValueError("illegal move: " + str(move))
 
+        from_square, to_square = move
         player = self.player_to_move
-        captured = self.board[move.to_sq]
-        self._history.append(_Undo(move, captured, player, self.winner))
-        self.board[move.from_sq] = EMPTY
-        self.board[move.to_sq] = player
+        captured = self.board[to_square]
+        self.history.append((move, captured, player, self.winner))
 
-        goal_row = self.board_size - 1 if player == PLAYER_1 else 0
-        to_row, _ = self.row_col(move.to_sq)
+        self.board[from_square] = EMPTY
+        self.board[to_square] = player
+
+        if player == PLAYER_1:
+            goal_row = self.board_size - 1
+        else:
+            goal_row = 0
+        to_row, unused_col = self.row_col(to_square)
+
         if to_row == goal_row or -player not in self.board:
             self.winner = player
             return
-
-        # A player unable to reply loses. Terminal moves never switch the player.
-        if not self._legal_moves_for(-player):
+        if not self.legal_moves_for(-player):
             self.winner = player
             return
 
         self.player_to_move = -player
 
-    def unmake_move(self, move: Move | None = None) -> Move:
-        if not self._history:
+    def unmake_move(self, move=None):
+        if not self.history:
             raise ValueError("no move to unmake")
-        undo = self._history.pop()
-        if move is not None and move != undo.move:
-            self._history.append(undo)
+        undo = self.history.pop()
+        old_move, captured, old_player, old_winner = undo
+        if move is not None and move != old_move:
+            self.history.append(undo)
             raise ValueError("move does not match the latest move")
-        self.board[undo.move.from_sq] = undo.previous_player
-        self.board[undo.move.to_sq] = undo.captured
-        self.player_to_move = undo.previous_player
-        self.winner = undo.previous_winner
-        return undo.move
 
-    def status(self) -> int | None:
+        from_square, to_square = old_move
+        self.board[from_square] = old_player
+        self.board[to_square] = captured
+        self.player_to_move = old_player
+        self.winner = old_winner
+        return old_move
+
+    def status(self):
         return self.winner
 
-    def outcome(self) -> int | None:
-        """Compatibility name used by the final-project handout."""
+    def outcome(self):
+        return self.winner
 
-        return self.status()
-
-    def _canonical_square(self, square: int) -> int:
+    def canonical_square(self, square):
         if self.player_to_move == PLAYER_1:
             return square
         return self.board_size * self.board_size - 1 - square
 
-    def _absolute_square(self, canonical_square: int) -> int:
-        # A 180-degree rotation is its own inverse.
-        return self._canonical_square(canonical_square)
+    def encode_move(self, move):
+        from_square, to_square = move
+        relative_from = self.canonical_square(from_square)
+        relative_to = self.canonical_square(to_square)
+        from_row, from_col = self.row_col(relative_from)
+        to_row, to_col = self.row_col(relative_to)
+        if to_row - from_row != 1:
+            raise ValueError("move is not one step forward")
+        col_change = to_col - from_col
+        if col_change not in (-1, 0, 1):
+            raise ValueError("move has an invalid direction")
+        return relative_from * 3 + col_change + 1
 
-    def encode_move(self, move: Move) -> int:
-        """Map an absolute move to a mover-relative policy action."""
-
-        origin = self._canonical_square(move.from_sq)
-        destination = self._canonical_square(move.to_sq)
-        from_row, from_col = self.row_col(origin)
-        to_row, to_col = self.row_col(destination)
-        if to_row - from_row != 1 or to_col - from_col not in (-1, 0, 1):
-            raise ValueError(f"move is not a one-step relative forward move: {move}")
-        direction = to_col - from_col + 1
-        return origin * 3 + direction
-
-    def decode(self, action: int) -> Move:
-        """Translate a relative policy action into an absolute move."""
-
-        if not 0 <= action < self.action_size:
+    def decode(self, action):
+        if action < 0 or action >= self.action_size:
             raise ValueError("action is outside the policy head")
-        canonical_from, direction = divmod(action, 3)
-        row, col = self.row_col(canonical_from)
+        relative_from, direction = divmod(action, 3)
+        row, col = self.row_col(relative_from)
         to_row = row + 1
         to_col = col + direction - 1
-        if not (0 <= to_row < self.board_size and 0 <= to_col < self.board_size):
+        if to_row >= self.board_size or to_col < 0 or to_col >= self.board_size:
             raise ValueError("action points outside the board")
-        return Move(
-            self._absolute_square(canonical_from),
-            self._absolute_square(self.square(to_row, to_col)),
-        )
 
-    def legal_actions(self) -> list[int]:
-        return [self.encode_move(move) for move in self.legal_moves()]
+        relative_to = self.square(to_row, to_col)
+        from_square = self.canonical_square(relative_from)
+        to_square = self.canonical_square(relative_to)
+        return (from_square, to_square)
 
-    def legal_action_mask(self) -> np.ndarray:
+    def legal_actions(self):
+        actions = []
+        for move in self.legal_moves():
+            actions.append(self.encode_move(move))
+        return actions
+
+    def legal_action_mask(self):
         mask = np.zeros(self.action_size, dtype=np.bool_)
-        mask[self.legal_actions()] = True
+        for action in self.legal_actions():
+            mask[action] = True
         return mask
 
-    def encode(self) -> np.ndarray:
-        """Return exactly two mover-relative binary planes, flattened.
-
-        The first plane contains the mover's pawns and the second the opponent's.
-        The side to move is implicit because Player-2 positions are rotated.
-        """
-
+    def encode(self):
         from .neural import canonical_planes
 
         return canonical_planes(self).reshape(-1)
 
-    @classmethod
-    def from_rows(
-        cls,
-        rows: list[str],
-        *,
-        player_to_move: int = PLAYER_1,
-        starting_rows: int = 1,
-        winner: int | None = None,
-    ) -> "Breakthrough":
-        """Convenient position constructor used in tests and diagnostics.
-
-        ``1`` is a Player-1 pawn, ``2`` is a Player-2 pawn, and ``.`` is empty.
-        """
-
-        size = len(rows)
-        if any(len(row) != size for row in rows):
-            raise ValueError("rows must form a square board")
-        pieces = {"1": PLAYER_1, "2": PLAYER_2, ".": EMPTY}
-        try:
-            board = [pieces[cell] for row in rows for cell in row]
-        except KeyError as error:
-            raise ValueError(f"unknown board character: {error.args[0]}") from error
-        return cls(
-            size,
-            starting_rows,
-            board=board,
-            player_to_move=player_to_move,
-            winner=winner,
-        )
-
-    def to_rows(self) -> list[str]:
+    def to_rows(self):
         symbols = {PLAYER_1: "1", PLAYER_2: "2", EMPTY: "."}
-        size = self.board_size
-        return [
-            "".join(symbols[p] for p in self.board[row * size : (row + 1) * size])
-            for row in range(size)
-        ]
+        rows = []
+        for row in range(self.board_size):
+            text = ""
+            start = row * self.board_size
+            for piece in self.board[start : start + self.board_size]:
+                text += symbols[piece]
+            rows.append(text)
+        return rows
 
+
+def game_from_rows(rows, player_to_move=PLAYER_1, starting_rows=1, winner=None):
+    """Build a test position from strings containing 1, 2, and dots."""
+
+    size = len(rows)
+    board = []
+    symbols = {"1": PLAYER_1, "2": PLAYER_2, ".": EMPTY}
+    for row in rows:
+        if len(row) != size:
+            raise ValueError("rows must form a square board")
+        for symbol in row:
+            if symbol not in symbols:
+                raise ValueError("unknown board character: " + symbol)
+            board.append(symbols[symbol])
+    return Breakthrough(size, starting_rows, board, player_to_move, winner)

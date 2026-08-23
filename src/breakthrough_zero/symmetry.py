@@ -1,70 +1,77 @@
-"""The four exact Breakthrough symmetries used for data augmentation."""
+"""The four exact Breakthrough transformations.
 
-from __future__ import annotations
-
-from dataclasses import dataclass
+A symmetry is the tuple ``(swap_players, reflect_left_right)``.
+"""
 
 import numpy as np
 
-from .game import Breakthrough, Move
+from .game import Breakthrough
 
 
-@dataclass(frozen=True)
-class Symmetry:
-    swap_players: bool = False
-    reflect_left_right: bool = False
+SYMMETRIES = [
+    (False, False),
+    (False, True),
+    (True, False),
+    (True, True),
+]
 
-    def square(self, square: int, size: int) -> int:
-        row, col = divmod(square, size)
-        if self.swap_players:
-            row, col = size - 1 - row, size - 1 - col
-        if self.reflect_left_right:
-            col = size - 1 - col
-        return row * size + col
 
-    def move(self, move: Move, size: int) -> Move:
-        return Move(self.square(move.from_sq, size), self.square(move.to_sq, size))
+def transform_square(square, size, symmetry):
+    swap_players, reflect = symmetry
+    row, col = divmod(square, size)
+    if swap_players:
+        row = size - 1 - row
+        col = size - 1 - col
+    if reflect:
+        col = size - 1 - col
+    return row * size + col
 
-    def state(self, game: Breakthrough) -> Breakthrough:
-        size = game.board_size
-        board = [0] * (size * size)
-        piece_sign = -1 if self.swap_players else 1
-        for square, piece in enumerate(game.board):
-            board[self.square(square, size)] = piece * piece_sign
-        player = -game.player_to_move if self.swap_players else game.player_to_move
-        winner = game.winner
-        if winner is not None and self.swap_players:
+
+def transform_move(move, size, symmetry):
+    from_square, to_square = move
+    return (
+        transform_square(from_square, size, symmetry),
+        transform_square(to_square, size, symmetry),
+    )
+
+
+def transform_state(game, symmetry):
+    swap_players, unused_reflect = symmetry
+    size = game.board_size
+    board = [0] * (size * size)
+    for square in range(len(game.board)):
+        new_square = transform_square(square, size, symmetry)
+        piece = game.board[square]
+        if swap_players:
+            piece = -piece
+        board[new_square] = piece
+
+    player = game.player_to_move
+    winner = game.winner
+    if swap_players:
+        player = -player
+        if winner is not None:
             winner = -winner
-        return Breakthrough(
-            size,
-            game.starting_rows,
-            board=board,
-            player_to_move=player,
-            winner=winner,
-        )
-
-    def action(self, game: Breakthrough, action: int) -> int:
-        move = game.decode(action)
-        transformed = self.state(game)
-        return transformed.encode_move(self.move(move, game.board_size))
-
-    def policy(self, game: Breakthrough, policy: np.ndarray) -> np.ndarray:
-        if policy.shape != (game.action_size,):
-            raise ValueError("policy has the wrong shape")
-        transformed = np.zeros_like(policy)
-        for action, probability in enumerate(policy):
-            try:
-                transformed[self.action(game, action)] = probability
-            except ValueError:
-                # Off-board output cells are never legal and carry no useful target mass.
-                if probability != 0:
-                    raise
-        return transformed
+    return Breakthrough(size, game.starting_rows, board, player, winner)
 
 
-SYMMETRIES = (
-    Symmetry(),
-    Symmetry(reflect_left_right=True),
-    Symmetry(swap_players=True),
-    Symmetry(swap_players=True, reflect_left_right=True),
-)
+def transform_action(game, action, symmetry):
+    move = game.decode(action)
+    new_game = transform_state(game, symmetry)
+    new_move = transform_move(move, game.board_size, symmetry)
+    return new_game.encode_move(new_move)
+
+
+def transform_policy(game, policy, symmetry):
+    if policy.shape != (game.action_size,):
+        raise ValueError("policy has the wrong shape")
+    new_policy = np.zeros_like(policy)
+    for action in range(len(policy)):
+        probability = policy[action]
+        try:
+            new_action = transform_action(game, action, symmetry)
+            new_policy[new_action] = probability
+        except ValueError:
+            if probability != 0:
+                raise
+    return new_policy

@@ -1,267 +1,299 @@
-"""Solver-labelled supervision and elementary tactical checks."""
+"""Solver-labelled examples and a small tactical test set."""
 
-from __future__ import annotations
-
-from dataclasses import asdict, dataclass
 import json
-from pathlib import Path
-import random
 import math
+import os
+import random
 
 import numpy as np
 
-from .agents import AlphaBetaAgent
-from .game import Breakthrough, PLAYER_1
-from .neural import GameNetwork, NeuralBoundary, canonical_planes
-from .symmetry import Symmetry
+from .agents import AlphaBetaAgent, evaluate_position
+from .game import Breakthrough, PLAYER_1, game_from_rows
+from .neural import GameNetwork, NeuralBoundary, canonical_planes, get_tensorflow
+from .symmetry import transform_state
 
 
-@dataclass(frozen=True)
-class DiagnosticPosition:
-    name: str
-    category: str
-    game: Breakthrough
-
-
-def tactical_suite() -> list[DiagnosticPosition]:
-    """Native 5x5 positions, paired with their color-swapped equivalents."""
-
-    bases = [
-        DiagnosticPosition(
-            "immediate_win",
-            "immediate wins",
-            Breakthrough.from_rows(
+def tactical_suite():
+    positions = [
+        {
+            "name": "immediate_win",
+            "category": "immediate wins",
+            "game": game_from_rows(
                 [".....", "....2", ".....", "..1..", "....."],
-                player_to_move=PLAYER_1,
+                PLAYER_1,
             ),
-        ),
-        DiagnosticPosition(
-            "must_defend",
-            "immediate threats requiring defense",
-            Breakthrough.from_rows(
+        },
+        {
+            "name": "must_defend",
+            "category": "immediate threats requiring defense",
+            "game": game_from_rows(
                 [".1...", "..2..", ".....", ".....", "....2"],
-                player_to_move=PLAYER_1,
+                PLAYER_1,
             ),
-        ),
-        DiagnosticPosition(
-            "forced_race",
-            "forced wins and losses",
-            Breakthrough.from_rows(
+        },
+        {
+            "name": "forced_race",
+            "category": "forced wins and losses",
+            "game": game_from_rows(
                 ["1....", ".....", ".1.2.", ".....", "....2"],
-                player_to_move=PLAYER_1,
+                PLAYER_1,
             ),
-        ),
-        DiagnosticPosition(
-            "forced_loss",
-            "forced wins and losses",
-            Breakthrough.from_rows(
+        },
+        {
+            "name": "forced_loss",
+            "category": "forced wins and losses",
+            "game": game_from_rows(
                 ["....1", ".2..1", ".....", ".....", "....2"],
-                player_to_move=PLAYER_1,
+                PLAYER_1,
             ),
-        ),
-        DiagnosticPosition(
-            "material_edge",
-            "material advantages",
-            Breakthrough.from_rows(
+        },
+        {
+            "name": "material_edge",
+            "category": "material advantages",
+            "game": game_from_rows(
                 ["11...", "..1..", ".....", "...2.", "....2"],
-                player_to_move=PLAYER_1,
+                PLAYER_1,
             ),
-        ),
-        DiagnosticPosition(
-            "passed_pawn",
-            "advanced passed pawns",
-            Breakthrough.from_rows(
+        },
+        {
+            "name": "passed_pawn",
+            "category": "advanced passed pawns",
+            "game": game_from_rows(
                 ["1....", ".....", ".1...", "...2.", "....2"],
-                player_to_move=PLAYER_1,
+                PLAYER_1,
             ),
-        ),
+        },
     ]
-    swap = Symmetry(swap_players=True)
-    paired = list(bases)
-    paired.extend(
-        DiagnosticPosition(f"{item.name}_swapped", item.category, swap.state(item.game))
-        for item in bases
-    )
+
+    paired = list(positions)
+    for position in positions:
+        paired.append(
+            {
+                "name": position["name"] + "_swapped",
+                "category": position["category"],
+                "game": transform_state(position["game"], (True, False)),
+            }
+        )
     return paired
 
 
-def generate_solver_examples(
-    count: int,
-    *,
-    seed: int = 0,
-    search_depth: int = 6,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
-    """Create a balanced native-5x5 diagnostic set labelled by alpha-beta.
-
-    These labels are intentionally separate from the required MCTS pretraining
-    data. Positions are sampled from seeded random games after the opening.
-    """
-
+def generate_solver_examples(count, seed=0, search_depth=6):
     if count < 2:
         raise ValueError("count must be at least two")
     target_per_label = count // 2
-    rng = random.Random(seed)
-    solver = AlphaBetaAgent(depth=search_depth)
-    # Balance the labels that the mover-relative value head actually sees.
-    buckets: dict[int, list[tuple[np.ndarray, np.ndarray, float]]] = {1: [], -1: []}
+    random_generator = random.Random(seed)
+    solver = AlphaBetaAgent(search_depth)
+    boundary = NeuralBoundary()
+    buckets = {1: [], -1: []}
     attempts = 0
+
     while min(len(buckets[1]), len(buckets[-1])) < target_per_label:
         attempts += 1
         if attempts > count * 200:
             raise RuntimeError("could not build a balanced solver dataset")
         game = Breakthrough(5, 1)
-        skip = rng.randint(4, 14)
-        for _ in range(skip):
+        skip = random_generator.randint(4, 14)
+        for unused_move in range(skip):
             if game.status() is not None:
                 break
-            game.make_move(rng.choice(game.legal_moves()))
+            move = random_generator.choice(game.legal_moves())
+            game.make_move(move)
         if game.status() is not None or len(game.legal_moves()) < 2:
             continue
+
         value, move = solver.search(game, search_depth)
         if abs(value) < 0.25:
             continue
-        label = 1 if value > 0 else -1
-        relative_label = label * game.player_to_move
+        if value > 0:
+            absolute_label = 1
+        else:
+            absolute_label = -1
+        relative_label = absolute_label * game.player_to_move
         if len(buckets[relative_label]) >= target_per_label:
             continue
+
         policy = np.zeros(game.action_size, dtype=np.float32)
         policy[game.encode_move(move)] = 1.0
-        relative_value = NeuralBoundary.relative_target(label, game.player_to_move)
-        buckets[relative_label].append((canonical_planes(game), policy, relative_value))
+        value_target = boundary.relative_target(
+            absolute_label, game.player_to_move
+        )
+        example = (canonical_planes(game), policy, value_target)
+        buckets[relative_label].append(example)
 
     examples = buckets[1][:target_per_label] + buckets[-1][:target_per_label]
-    rng.shuffle(examples)
-    x, p, z = zip(*examples)
-    return (
-        np.stack(x),
-        np.stack(p),
-        np.asarray(z, dtype=np.float32)[:, None],
-        {"examples": len(examples), "positive": target_per_label, "negative": target_per_label},
-    )
+    random_generator.shuffle(examples)
+    inputs = []
+    policies = []
+    values = []
+    for planes, policy, value in examples:
+        inputs.append(planes)
+        policies.append(policy)
+        values.append(value)
+    metrics = {
+        "examples": len(examples),
+        "positive": target_per_label,
+        "negative": target_per_label,
+    }
+    value_array = np.array(values, dtype=np.float32).reshape(-1, 1)
+    return np.stack(inputs), np.stack(policies), value_array, metrics
 
 
-def _solver_optimal_actions(
-    game: Breakthrough, depth: int
-) -> tuple[float, list[int]]:
-    values: dict[int, float] = {}
+def solver_optimal_actions(game, depth):
+    values = {}
     for move in game.legal_moves():
         action = game.encode_move(move)
         game.make_move(move)
         if game.status() is not None:
             value = float(game.status())
         elif depth <= 1:
-            value = AlphaBetaAgent.evaluate(game)
+            value = evaluate_position(game)
         else:
-            solver = AlphaBetaAgent(depth=depth - 1)
-            value, _ = solver.search(game, depth - 1)
+            solver = AlphaBetaAgent(depth - 1)
+            value, unused_move = solver.search(game, depth - 1)
         game.unmake_move(move)
         values[action] = value
-    best = max(values.values()) if game.player_to_move == 1 else min(values.values())
-    optimal = [action for action, value in values.items() if math.isclose(value, best)]
-    return best, optimal
+
+    if game.player_to_move == 1:
+        best_value = max(values.values())
+    else:
+        best_value = min(values.values())
+    best_actions = []
+    for action in values:
+        if math.isclose(values[action], best_value):
+            best_actions.append(action)
+    return best_value, best_actions
 
 
-def evaluate_tactical_suite(
-    network: GameNetwork,
-    *,
-    solver_depth: int = 8,
-) -> dict:
+def evaluate_tactical_suite(network, solver_depth=8):
     boundary = NeuralBoundary(network)
-    rows: list[dict] = []
-    for item in tactical_suite():
-        expected_value, optimal_actions = _solver_optimal_actions(
-            item.game.clone(), solver_depth
+    rows = []
+    for position in tactical_suite():
+        game = position["game"]
+        expected_value, best_actions = solver_optimal_actions(
+            game.clone(), solver_depth
         )
-        expected_outcome = 1 if expected_value > 0 else -1
-        prediction = boundary.predict(item.game)
-        predicted_action = max(prediction.priors, key=prediction.priors.get)
+        if expected_value > 0:
+            expected_outcome = 1
+        else:
+            expected_outcome = -1
+        prediction = boundary.predict(game)
+        priors = prediction["priors"]
+        predicted_action = max(priors, key=priors.get)
         rows.append(
             {
-                "name": item.name,
-                "category": item.category,
-                "player_to_move": item.game.player_to_move,
+                "name": position["name"],
+                "category": position["category"],
+                "player_to_move": game.player_to_move,
                 "expected_absolute_outcome": expected_outcome,
-                "predicted_absolute_value": prediction.value,
-                "value_correct": prediction.value * expected_outcome > 0,
-                "solver_actions": optimal_actions,
+                "predicted_absolute_value": prediction["value"],
+                "value_correct": prediction["value"] * expected_outcome > 0,
+                "solver_actions": best_actions,
                 "top_policy_action": predicted_action,
-                "policy_correct": predicted_action in optimal_actions,
+                "policy_correct": predicted_action in best_actions,
             }
         )
-    paired_consistency = []
-    by_name = {row["name"]: row for row in rows}
+
+    by_name = {}
+    for row in rows:
+        by_name[row["name"]] = row
+    swap_errors = []
     for row in rows:
         if row["name"].endswith("_swapped"):
-            base = by_name[row["name"].removesuffix("_swapped")]
-            paired_consistency.append(
-                abs(base["predicted_absolute_value"] + row["predicted_absolute_value"])
+            original_name = row["name"][:-8]
+            original = by_name[original_name]
+            error = abs(
+                original["predicted_absolute_value"]
+                + row["predicted_absolute_value"]
             )
+            swap_errors.append(error)
+
+    correct_values = 0
+    correct_policies = 0
+    for row in rows:
+        correct_values += int(row["value_correct"])
+        correct_policies += int(row["policy_correct"])
     return {
         "positions": rows,
-        "value_accuracy": sum(row["value_correct"] for row in rows) / len(rows),
-        "policy_accuracy": sum(row["policy_correct"] for row in rows) / len(rows),
-        "mean_color_swap_absolute_error": float(np.mean(paired_consistency)),
+        "value_accuracy": correct_values / len(rows),
+        "policy_accuracy": correct_policies / len(rows),
+        "mean_color_swap_absolute_error": float(np.mean(swap_errors)),
     }
 
 
 def run_supervised_diagnostic(
-    output_dir: str | Path,
-    *,
-    examples: int = 2048,
-    seed: int = 0,
-    epochs: int = 24,
-    batch_size: int = 64,
-) -> dict:
-    """Train the diagnostic CNN and refuse to pass weak elementary learning."""
-
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    x, p, z, dataset_metrics = generate_solver_examples(examples, seed=seed)
-    split = int(0.8 * len(x))
-    GameNetwork._tf().keras.utils.set_random_seed(seed)
+    output_dir,
+    examples=2048,
+    seed=0,
+    epochs=24,
+    batch_size=64,
+):
+    os.makedirs(output_dir, exist_ok=True)
+    inputs, policies, values, dataset_metrics = generate_solver_examples(
+        examples, seed, 6
+    )
+    split = int(0.8 * len(inputs))
+    get_tensorflow().keras.utils.set_random_seed(seed)
     network = GameNetwork(5)
-    early_stopping = network._tf().keras.callbacks.EarlyStopping(
-        monitor="val_loss", patience=5, restore_best_weights=True
+    early_stopping = get_tensorflow().keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        patience=5,
+        restore_best_weights=True,
+    )
+    validation = (
+        inputs[split:],
+        {"policy": policies[split:], "value": values[split:]},
     )
     history = network.fit(
-        x[:split],
-        p[:split],
-        z[:split],
-        validation_data=(x[split:], {"policy": p[split:], "value": z[split:]}),
+        inputs[:split],
+        policies[:split],
+        values[:split],
+        validation_data=validation,
         epochs=epochs,
         batch_size=batch_size,
         callbacks=[early_stopping],
         verbose=2,
     )
-    model_path = output_dir / "diagnostic-5x5.keras"
+    model_path = os.path.join(output_dir, "diagnostic-5x5.keras")
     network.save(model_path)
-    heldout_prediction = network.model(x[split:], training=False)
-    heldout_policy = np.asarray(heldout_prediction["policy"])
-    heldout_value = np.asarray(heldout_prediction["value"])
+
+    prediction = network.model(inputs[split:], training=False)
+    predicted_policy = np.array(prediction["policy"])
+    predicted_value = np.array(prediction["value"])
+    value_accuracy = np.mean(np.sign(predicted_value) == values[split:])
+    policy_accuracy = np.mean(
+        np.argmax(predicted_policy, axis=1)
+        == np.argmax(policies[split:], axis=1)
+    )
     heldout = {
-        "examples": len(x) - split,
-        "value_accuracy": float(np.mean(np.sign(heldout_value) == z[split:])),
-        "policy_accuracy": float(
-            np.mean(np.argmax(heldout_policy, axis=1) == np.argmax(p[split:], axis=1))
-        ),
+        "examples": len(inputs) - split,
+        "value_accuracy": float(value_accuracy),
+        "policy_accuracy": float(policy_accuracy),
     }
     tactics = evaluate_tactical_suite(network)
-    report = {
-        "dataset": dataset_metrics,
-        "history": {key: [float(v) for v in values] for key, values in history.history.items()},
-        "heldout": heldout,
-        "tactical": tactics,
-        "model": str(model_path),
-        "passed": heldout["value_accuracy"] >= 0.7
+
+    history_values = {}
+    for name in history.history:
+        history_values[name] = []
+        for value in history.history[name]:
+            history_values[name].append(float(value))
+    passed = (
+        heldout["value_accuracy"] >= 0.7
         and heldout["policy_accuracy"] >= 0.35
         and tactics["value_accuracy"] >= 0.75
         and tactics["policy_accuracy"] >= 0.5
-        and tactics["mean_color_swap_absolute_error"] <= 1e-5,
+        and tactics["mean_color_swap_absolute_error"] <= 0.00001
+    )
+    report = {
+        "dataset": dataset_metrics,
+        "history": history_values,
+        "heldout": heldout,
+        "tactical": tactics,
+        "model": model_path,
+        "passed": passed,
     }
-    report_path = output_dir / "diagnostic-report.json"
-    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    if not report["passed"]:
-        raise RuntimeError(
-            "supervised diagnostic failed; inspect diagnostic-report.json before MCTS training"
-        )
+    report_path = os.path.join(output_dir, "diagnostic-report.json")
+    with open(report_path, "w", encoding="utf-8") as stream:
+        json.dump(report, stream, indent=2)
+    if not passed:
+        raise RuntimeError("supervised diagnostic failed; inspect its report")
     return report

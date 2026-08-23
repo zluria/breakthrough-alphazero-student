@@ -1,61 +1,41 @@
-"""Paired-opening arenas, score intervals, and Elo differences."""
+"""Paired-opening games, score intervals, and Elo estimates."""
 
-from __future__ import annotations
-
-from dataclasses import asdict, dataclass
 import math
 import random
 import time
-from typing import Callable, Protocol
 
-from .game import Breakthrough, Move, PLAYER_1
+import numpy as np
 
-
-class Agent(Protocol):
-    def choose_move(self, game: Breakthrough) -> Move: ...
-
-
-AgentFactory = Callable[[], Agent]
-
-
-@dataclass(frozen=True)
-class PlayedGame:
-    opening_index: int
-    agent_a_player: int
-    winner: int | None
-    agent_a_score: float
-    moves: list[tuple[int, int]]
-    elapsed_s: float
-    failure: str | None = None
+from .game import Breakthrough
 
 
 def randomized_openings(
-    count: int,
-    *,
-    board_size: int,
-    starting_rows: int,
-    prefix_plies: int,
-    seed: int,
-) -> list[list[Move]]:
-    rng = random.Random(seed)
-    openings: list[list[Move]] = []
-    seen: set[tuple[tuple[int, int], ...]] = set()
+    count,
+    board_size=5,
+    starting_rows=1,
+    prefix_plies=4,
+    seed=0,
+):
+    random_generator = random.Random(seed)
+    openings = []
+    seen = set()
     attempts = 0
+
     while len(openings) < count:
         attempts += 1
         if attempts > count * 100:
-            raise RuntimeError("could not produce enough distinct opening prefixes")
+            raise RuntimeError("could not produce enough distinct openings")
         game = Breakthrough(board_size, starting_rows)
-        moves: list[Move] = []
-        for _ in range(prefix_plies):
+        moves = []
+        for unused_ply in range(prefix_plies):
             if game.status() is not None:
                 break
-            move = rng.choice(game.legal_moves())
+            move = random_generator.choice(game.legal_moves())
             moves.append(move)
             game.make_move(move)
         if game.status() is not None:
             continue
-        key = tuple((move.from_sq, move.to_sq) for move in moves)
+        key = tuple(moves)
         if key not in seen:
             seen.add(key)
             openings.append(moves)
@@ -63,117 +43,143 @@ def randomized_openings(
 
 
 def play_arena_game(
-    agent_a: Agent,
-    agent_b: Agent,
-    *,
-    agent_a_player: int,
-    opening: list[Move],
-    opening_index: int,
-    board_size: int,
-    starting_rows: int,
-) -> PlayedGame:
+    agent_a,
+    agent_b,
+    agent_a_player,
+    opening,
+    opening_index,
+    board_size,
+    starting_rows,
+):
     game = Breakthrough(board_size, starting_rows)
-    move_log: list[tuple[int, int]] = []
+    move_log = []
     started = time.perf_counter()
+    winner = None
+    failure = None
+    score = 0.0
+
     try:
         for move in opening:
             game.make_move(move)
-            move_log.append((move.from_sq, move.to_sq))
+            move_log.append(move)
         while game.status() is None:
-            current = agent_a if game.player_to_move == agent_a_player else agent_b
-            move = current.choose_move(game)
+            if game.player_to_move == agent_a_player:
+                agent = agent_a
+            else:
+                agent = agent_b
+            move = agent.choose_move(game)
             game.make_move(move)
-            move_log.append((move.from_sq, move.to_sq))
+            move_log.append(move)
         winner = game.status()
-        score = 1.0 if winner == agent_a_player else 0.0
-        failure = None
-    except Exception as error:  # arena failures are recorded, not hidden
-        winner = None
-        score = 0.0
-        failure = f"{type(error).__name__}: {error}"
-    return PlayedGame(
-        opening_index,
-        agent_a_player,
-        winner,
-        score,
-        move_log,
-        time.perf_counter() - started,
-        failure,
-    )
+        if winner == agent_a_player:
+            score = 1.0
+    except Exception as error:
+        failure = error.__class__.__name__ + ": " + str(error)
+
+    return {
+        "opening_index": opening_index,
+        "agent_a_player": agent_a_player,
+        "winner": winner,
+        "agent_a_score": score,
+        "moves": move_log,
+        "elapsed_s": time.perf_counter() - started,
+        "failure": failure,
+    }
 
 
-def wilson_interval(successes: float, games: int, z: float = 1.96) -> tuple[float, float]:
+def wilson_interval(successes, games, z=1.96):
     if games < 1:
-        return 0.0, 1.0
-    p = successes / games
+        return (0.0, 1.0)
+    proportion = successes / games
     denominator = 1 + z * z / games
-    center = (p + z * z / (2 * games)) / denominator
-    margin = z * math.sqrt(p * (1 - p) / games + z * z / (4 * games * games)) / denominator
-    return max(0.0, center - margin), min(1.0, center + margin)
+    center = (proportion + z * z / (2 * games)) / denominator
+    inside = (
+        proportion * (1 - proportion) / games
+        + z * z / (4 * games * games)
+    )
+    margin = z * math.sqrt(inside) / denominator
+    return (max(0.0, center - margin), min(1.0, center + margin))
 
 
-def score_to_elo(score: float) -> float:
-    score = min(1 - 1e-6, max(1e-6, score))
+def score_to_elo(score):
+    score = max(0.000001, min(0.999999, score))
     return 400 * math.log10(score / (1 - score))
 
 
 def evaluate_pair(
-    agent_a_factory: AgentFactory,
-    agent_b_factory: AgentFactory,
-    *,
-    agent_a_name: str,
-    agent_b_name: str,
-    opening_count: int = 50,
-    prefix_plies: int = 4,
-    board_size: int = 5,
-    starting_rows: int = 1,
-    seed: int = 20260811,
-) -> dict:
-    """Play every deterministic opening twice with agent colors reversed."""
-
+    agent_a,
+    agent_b,
+    agent_a_name,
+    agent_b_name,
+    opening_count=50,
+    prefix_plies=4,
+    board_size=5,
+    starting_rows=1,
+    seed=20260811,
+):
     openings = randomized_openings(
         opening_count,
-        board_size=board_size,
-        starting_rows=starting_rows,
-        prefix_plies=prefix_plies,
-        seed=seed,
+        board_size,
+        starting_rows,
+        prefix_plies,
+        seed,
     )
-    games: list[PlayedGame] = []
-    for opening_index, opening in enumerate(openings):
-        games.append(
-            play_arena_game(
-                agent_a_factory(),
-                agent_b_factory(),
-                agent_a_player=1,
-                opening=opening,
-                opening_index=opening_index,
-                board_size=board_size,
-                starting_rows=starting_rows,
-            )
+    games = []
+    for opening_index in range(len(openings)):
+        opening = openings[opening_index]
+        game = play_arena_game(
+            agent_a,
+            agent_b,
+            1,
+            opening,
+            opening_index,
+            board_size,
+            starting_rows,
         )
-        games.append(
-            play_arena_game(
-                agent_a_factory(),
-                agent_b_factory(),
-                agent_a_player=-1,
-                opening=opening,
-                opening_index=opening_index,
-                board_size=board_size,
-                starting_rows=starting_rows,
-            )
+        games.append(game)
+        game = play_arena_game(
+            agent_a,
+            agent_b,
+            -1,
+            opening,
+            opening_index,
+            board_size,
+            starting_rows,
         )
+        games.append(game)
 
-    successful = [game for game in games if game.failure is None]
-    score = sum(game.agent_a_score for game in successful)
-    rate = score / len(successful) if successful else 0.0
+    successful = []
+    for game in games:
+        if game["failure"] is None:
+            successful.append(game)
+    score = 0.0
+    total_seconds = 0.0
+    sequences = []
+    for game in successful:
+        score += game["agent_a_score"]
+        total_seconds += game["elapsed_s"]
+        sequences.append(tuple(game["moves"]))
+
+    if successful:
+        rate = score / len(successful)
+        mean_seconds = total_seconds / len(successful)
+    else:
+        rate = 0.0
+        mean_seconds = 0.0
     interval = wilson_interval(score, len(successful))
-    sequences = [tuple(game.moves) for game in successful]
     duplicate_fraction = 1 - len(set(sequences)) / max(1, len(sequences))
-    alarms: list[str] = []
+
+    alarms = []
     if duplicate_fraction > 0.25:
-        alarms.append(f"duplicate game fraction is {duplicate_fraction:.3f}")
+        alarms.append("duplicate game fraction is %.3f" % duplicate_fraction)
     if len(successful) >= 40 and rate == 0.5:
         alarms.append("suspiciously exact 50/50 split; inspect paired games")
+
+    elo_difference = None
+    elo_interval = None
+    if successful:
+        elo_difference = score_to_elo(rate)
+        elo_interval = [score_to_elo(interval[0]), score_to_elo(interval[1])]
     return {
         "agent_a": agent_a_name,
         "agent_b": agent_b_name,
@@ -184,110 +190,91 @@ def evaluate_pair(
         "failures": len(games) - len(successful),
         "agent_a_score": score,
         "agent_a_score_rate": rate,
-        "score_95_interval": interval,
-        "elo_difference": score_to_elo(rate) if successful else None,
-        "elo_95_interval": (
-            score_to_elo(interval[0]),
-            score_to_elo(interval[1]),
-        )
-        if successful
-        else None,
-        "mean_game_seconds": sum(game.elapsed_s for game in successful)
-        / max(1, len(successful)),
+        "score_95_interval": list(interval),
+        "elo_difference": elo_difference,
+        "elo_95_interval": elo_interval,
+        "mean_game_seconds": mean_seconds,
         "duplicate_game_fraction": duplicate_fraction,
         "alarms": alarms,
-        "games": [asdict(game) for game in games],
+        "games": games,
     }
 
 
-def fit_elo_table(reports: list[dict], *, anchor: str) -> dict:
-    """Fit a connected Bradley-Terry/Elo table with one fixed anchor rating."""
+def fit_elo_table(reports, anchor):
+    """Fit one connected Bradley-Terry table, with the anchor fixed at zero."""
 
-    import numpy as np
-
-    names = sorted(
-        {name for report in reports for name in (report["agent_a"], report["agent_b"])}
-    )
+    name_set = set()
+    for report in reports:
+        name_set.add(report["agent_a"])
+        name_set.add(report["agent_b"])
+    names = sorted(name_set)
     if anchor not in names:
-        raise ValueError(f"anchor {anchor!r} is absent from the reports")
-    free = [name for name in names if name != anchor]
-    index = {name: i for i, name in enumerate(free)}
-    theta = np.zeros(len(free), dtype=np.float64)
+        raise ValueError("anchor is absent from the reports")
 
-    def value(name: str) -> float:
-        return 0.0 if name == anchor else float(theta[index[name]])
+    free_names = []
+    for name in names:
+        if name != anchor:
+            free_names.append(name)
+    name_index = {}
+    for index in range(len(free_names)):
+        name_index[free_names[index]] = index
+    strengths = np.zeros(len(free_names), dtype=np.float64)
 
-    for _ in range(100):
-        gradient = np.zeros_like(theta)
-        hessian = np.eye(len(theta), dtype=np.float64) * 1e-6
+    for unused_round in range(100):
+        gradient = np.zeros(len(free_names), dtype=np.float64)
+        information = np.eye(len(free_names), dtype=np.float64) * 0.000001
         for report in reports:
             games = int(report["games_completed"])
             if games <= 0:
                 continue
-            # Jeffreys-style half-win/half-loss smoothing keeps separated
-            # matchups finite without materially changing ordinary results.
+            name_a = report["agent_a"]
+            name_b = report["agent_b"]
+            strength_a = 0.0 if name_a == anchor else strengths[name_index[name_a]]
+            strength_b = 0.0 if name_b == anchor else strengths[name_index[name_b]]
+            difference = max(-30.0, min(30.0, strength_a - strength_b))
+            probability = 1.0 / (1.0 + math.exp(-difference))
             effective_games = games + 1.0
             successes = float(report["agent_a_score"]) + 0.5
-            agent_a, agent_b = report["agent_a"], report["agent_b"]
-            difference = max(-30.0, min(30.0, value(agent_a) - value(agent_b)))
-            probability = 1.0 / (1.0 + math.exp(-difference))
             residual = effective_games * probability - successes
-            curvature = effective_games * probability * (1.0 - probability)
-            if agent_a != anchor:
-                a = index[agent_a]
+            curve = effective_games * probability * (1.0 - probability)
+
+            if name_a != anchor:
+                a = name_index[name_a]
                 gradient[a] += residual
-                hessian[a, a] += curvature
-            if agent_b != anchor:
-                b = index[agent_b]
+                information[a, a] += curve
+            if name_b != anchor:
+                b = name_index[name_b]
                 gradient[b] -= residual
-                hessian[b, b] += curvature
-            if agent_a != anchor and agent_b != anchor:
-                a, b = index[agent_a], index[agent_b]
-                hessian[a, b] -= curvature
-                hessian[b, a] -= curvature
-        step = np.linalg.solve(hessian, gradient)
-        theta -= step
-        if float(np.max(np.abs(step), initial=0.0)) < 1e-9:
+                information[b, b] += curve
+            if name_a != anchor and name_b != anchor:
+                information[a, b] -= curve
+                information[b, a] -= curve
+        step = np.linalg.solve(information, gradient)
+        strengths = strengths - step
+        if len(step) == 0 or np.max(np.abs(step)) < 0.000000001:
             break
 
-    # Rebuild the observed-information matrix at the solution for uncertainty.
-    information = np.eye(len(theta), dtype=np.float64) * 1e-6
-    for report in reports:
-        games = int(report["games_completed"])
-        if games <= 0:
-            continue
-        agent_a, agent_b = report["agent_a"], report["agent_b"]
-        difference = max(-30.0, min(30.0, value(agent_a) - value(agent_b)))
-        probability = 1.0 / (1.0 + math.exp(-difference))
-        curvature = (games + 1.0) * probability * (1.0 - probability)
-        if agent_a != anchor:
-            information[index[agent_a], index[agent_a]] += curvature
-        if agent_b != anchor:
-            information[index[agent_b], index[agent_b]] += curvature
-        if agent_a != anchor and agent_b != anchor:
-            a, b = index[agent_a], index[agent_b]
-            information[a, b] -= curvature
-            information[b, a] -= curvature
-    covariance = np.linalg.inv(information) if len(theta) else np.empty((0, 0))
+    covariance = np.linalg.inv(information)
     scale = 400.0 / math.log(10.0)
     ratings = []
     for name in names:
         if name == anchor:
-            rating, standard_error = 0.0, 0.0
+            rating = 0.0
+            error = 0.0
         else:
-            i = index[name]
-            rating = float(theta[i] * scale)
-            standard_error = float(math.sqrt(max(0.0, covariance[i, i])) * scale)
+            index = name_index[name]
+            rating = float(strengths[index] * scale)
+            error = float(math.sqrt(max(0.0, covariance[index, index])) * scale)
         ratings.append(
             {
                 "agent": name,
                 "elo": rating,
-                "standard_error": standard_error,
-                "elo_95_interval": [
-                    rating - 1.96 * standard_error,
-                    rating + 1.96 * standard_error,
-                ],
+                "standard_error": error,
+                "elo_95_interval": [rating - 1.96 * error, rating + 1.96 * error],
             }
         )
-    ratings.sort(key=lambda row: row["elo"], reverse=True)
+    def rating_value(row):
+        return row["elo"]
+
+    ratings.sort(key=rating_value, reverse=True)
     return {"anchor": anchor, "reports": len(reports), "ratings": ratings}

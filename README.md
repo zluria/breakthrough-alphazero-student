@@ -6,6 +6,18 @@ The repository is intentionally small. It uses ordinary Python lists and direct 
 
 This is a clean-room implementation derived from the supplied course handouts and the stated invariants. No implementation, checkpoint, training record, or infrastructure from the historical `breakthrough-zero` repository was copied.
 
+## Python level
+
+The mathematical ideas are more advanced than the Python used to express them. The implementation deliberately avoids type annotations, `from __future__`, dataclasses, protocols, properties, decorators, and callable or factory machinery.
+
+- A move is a two-item tuple: `(from_square, to_square)`.
+- An undo-history entry is a tuple containing the move and the old fields.
+- A self-play position, search result, metric, and report is a plain dictionary.
+- A symmetry is the tuple `(swap_players, reflect_left_right)` and is applied by ordinary functions.
+- Classes are reserved for the game, agents, neural network, replay buffer, and PUCT node/player, where mutable state is genuinely useful.
+
+Students should be able to follow the control flow using lists, tuples, dictionaries, loops, functions, simple classes, NumPy, and Keras.
+
 ## The game
 
 Player 1 begins at the top and moves toward the final row. Player 2 begins at the bottom and moves toward row zero. A pawn moves one square straight forward into an empty square or one square diagonally forward into an empty or enemy square. A diagonal move captures an enemy pawn. The first pawn to reach the far side wins; a player with no legal reply also loses.
@@ -28,12 +40,12 @@ If you change the encoding or value convention, start with `tests/test_neural.py
 
 ## Code map
 
-- `game.py` - flat-list board, legal moves, make/unmake, terminal rules, action mapping.
+- `game.py` - flat-list board, tuple moves, tuple undo history, legal moves, terminal rules, action mapping.
 - `agents.py` - random, tactical rollout, brute-force solver, readable alpha-beta.
 - `neural.py` - two-plane canonicalization, the perspective boundary, native Keras CNN.
 - `puct.py` - dummy rollout evaluator, neural evaluator, PUCT tree search.
-- `data.py` - reconstructable gzip JSONL records with boards, counts, priors, root statistics, actions, and outcomes.
-- `replay.py` - bounded replay and four-symmetry augmentation with duplicate tensors removed.
+- `data.py` - plain-dictionary gzip JSONL records with boards, counts, priors, root statistics, actions, and outcomes.
+- `replay.py` - a bounded list and four tuple-defined symmetries with duplicate tensors removed.
 - `diagnostics.py` - balanced alpha-beta supervision and color-paired tactical checks.
 - `training.py` - assignment pretraining and synchronous `PLAY -> REPLAY -> TRAIN` iterations.
 - `evaluation.py` - reproducible randomized opening prefixes, color pairing, Elo differences, intervals, and alarms.

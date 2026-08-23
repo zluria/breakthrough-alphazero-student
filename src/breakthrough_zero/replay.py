@@ -1,116 +1,120 @@
-"""Bounded replay storage and duplicate-safe symmetry augmentation."""
+"""A bounded list of old positions and simple symmetry augmentation."""
 
-from __future__ import annotations
-
-from collections import deque
-from dataclasses import dataclass
-import hashlib
 import random
-from typing import Iterable
 
 import numpy as np
 
-from .data import PositionRecord
+from .data import state_from_record
 from .neural import NeuralBoundary, canonical_planes
-from .symmetry import SYMMETRIES
-
-
-@dataclass(frozen=True)
-class ReplayEntry:
-    record: PositionRecord
-    added_iteration: int
+from .symmetry import SYMMETRIES, transform_action, transform_state
 
 
 class ReplayBuffer:
-    def __init__(self, capacity: int, seed: int = 0) -> None:
+    def __init__(self, capacity, seed=0):
         if capacity < 1:
             raise ValueError("capacity must be positive")
         self.capacity = capacity
-        self.entries: deque[ReplayEntry] = deque(maxlen=capacity)
-        self.rng = random.Random(seed)
+        self.entries = []
+        self.random = random.Random(seed)
         self.total_added = 0
         self.total_sampled = 0
 
-    def add(self, records: Iterable[PositionRecord], iteration: int) -> int:
-        count = 0
+    def add(self, records, iteration):
         for record in records:
-            self.entries.append(ReplayEntry(record, iteration))
+            self.entries.append((record, iteration))
             self.total_added += 1
-            count += 1
-        return count
+        if len(self.entries) > self.capacity:
+            extra = len(self.entries) - self.capacity
+            self.entries = self.entries[extra:]
+        return len(records)
 
-    def sample(self, count: int) -> list[PositionRecord]:
+    def sample(self, count):
         if not self.entries:
             raise ValueError("cannot sample an empty replay buffer")
-        selected = self.rng.choices(list(self.entries), k=count)
+        records = []
+        for unused_number in range(count):
+            record, unused_iteration = self.random.choice(self.entries)
+            records.append(record)
         self.total_sampled += count
-        return [entry.record for entry in selected]
+        return records
 
-    def metrics(self, current_iteration: int) -> dict[str, float | int]:
-        ages = [current_iteration - entry.added_iteration for entry in self.entries]
+    def metrics(self, current_iteration):
+        ages = []
+        for record, added_iteration in self.entries:
+            ages.append(current_iteration - added_iteration)
+        if ages:
+            mean_age = sum(ages) / len(ages)
+            oldest_age = max(ages)
+        else:
+            mean_age = 0.0
+            oldest_age = 0
         return {
             "size": len(self.entries),
             "capacity": self.capacity,
             "fill_fraction": len(self.entries) / self.capacity,
-            "mean_age_iterations": sum(ages) / len(ages) if ages else 0.0,
-            "oldest_age_iterations": max(ages, default=0),
+            "mean_age_iterations": mean_age,
+            "oldest_age_iterations": oldest_age,
             "total_added": self.total_added,
             "total_sampled": self.total_sampled,
-            "replay_consumption_ratio": self.total_sampled / max(1, self.total_added),
+            "replay_consumption_ratio": self.total_sampled
+            / max(1, self.total_added),
         }
 
 
-def records_to_training_arrays(
-    records: Iterable[PositionRecord],
-    *,
-    augment: bool = True,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
-    """Reconstruct mover-relative tensors while deduplicating exact symmetries."""
-
-    inputs: list[np.ndarray] = []
-    policies: list[np.ndarray] = []
-    values: list[float] = []
+def records_to_training_arrays(records, augment=True):
+    inputs = []
+    policies = []
+    values = []
     duplicates = 0
+    boundary = NeuralBoundary()
 
     for record in records:
-        if record.final_outcome not in (-1, 1):
-            raise ValueError("training records require a final absolute outcome")
-        game = record.state()
-        source_counts = dict(zip(record.legal_actions, record.visit_counts))
-        symmetries = SYMMETRIES if augment else SYMMETRIES[:1]
-        seen: set[bytes] = set()
+        if record["final_outcome"] not in (-1, 1):
+            raise ValueError("training records require a final outcome")
+        game = state_from_record(record)
+        source_counts = {}
+        for index in range(len(record["legal_actions"])):
+            action = record["legal_actions"][index]
+            source_counts[action] = record["visit_counts"][index]
+
+        if augment:
+            symmetries = SYMMETRIES
+        else:
+            symmetries = [SYMMETRIES[0]]
+        seen = set()
+
         for symmetry in symmetries:
-            transformed = symmetry.state(game)
-            policy = np.zeros(transformed.action_size, dtype=np.float32)
-            for action, count in source_counts.items():
-                transformed_action = symmetry.action(game, action)
-                policy[transformed_action] += count
+            new_game = transform_state(game, symmetry)
+            policy = np.zeros(new_game.action_size, dtype=np.float32)
+            for action in source_counts:
+                new_action = transform_action(game, action, symmetry)
+                policy[new_action] += source_counts[action]
             if policy.sum() <= 0:
                 raise ValueError("visit counts contain no target mass")
-            policy /= policy.sum()
-            planes = canonical_planes(transformed)
-            absolute_outcome = (
-                -record.final_outcome if symmetry.swap_players else record.final_outcome
+            policy = policy / policy.sum()
+
+            planes = canonical_planes(new_game)
+            absolute_outcome = record["final_outcome"]
+            if symmetry[0]:
+                absolute_outcome = -absolute_outcome
+            relative_value = boundary.relative_target(
+                absolute_outcome, new_game.player_to_move
             )
-            relative_value = NeuralBoundary.relative_target(
-                absolute_outcome, transformed.player_to_move
-            )
-            digest = hashlib.sha256(
-                planes.tobytes() + policy.tobytes() + np.float32(relative_value).tobytes()
-            ).digest()
-            if digest in seen:
+
+            key = (planes.tobytes(), policy.tobytes(), float(relative_value))
+            if key in seen:
                 duplicates += 1
                 continue
-            seen.add(digest)
+            seen.add(key)
             inputs.append(planes)
             policies.append(policy)
             values.append(relative_value)
 
     if not inputs:
         raise ValueError("no training examples were produced")
-    return (
-        np.stack(inputs),
-        np.stack(policies),
-        np.asarray(values, dtype=np.float32)[:, None],
-        {"examples": len(inputs), "symmetry_duplicates_removed": duplicates},
-    )
+    value_array = np.array(values, dtype=np.float32).reshape(-1, 1)
+    metrics = {
+        "examples": len(inputs),
+        "symmetry_duplicates_removed": duplicates,
+    }
+    return np.stack(inputs), np.stack(policies), value_array, metrics
