@@ -7,6 +7,7 @@
   "cpuct": 1.5,
   "train_steps": 32,
   "batch_size": 64,
+  "learning_rate": 0.0001,
   "replay_capacity": 16000,
   "seed": 20260812,
   "dirichlet_alpha": 0.2,

@@ -1,0 +1,25 @@
+{
+  "job_id": 33977,
+  "commit": "098ed154fcfba31cac74d0fec09f784505bdcfb1",
+  "status": "stopped_by_tactical_alarm",
+  "slurm_state": "FAILED",
+  "elapsed": "00:24:45",
+  "completed_iterations": 4,
+  "fresh_games": 256,
+  "fresh_positions": 3234,
+  "examples_presented": 2048,
+  "last_replay_consumption_ratio": 0.7239307175680453,
+  "last_actor_tactical_value_accuracy": 0.8333333333333334,
+  "last_checkpoint_tactical_value_accuracy": 0.6666666666666666,
+  "last_checkpoint_tactical_policy_accuracy": 1.0,
+  "last_checkpoint_swap_error": 0.0,
+  "last_regression_arena_score": "7/12",
+  "failed_checkpoint_is_playable": false,
+  "diagnosis": "The 0.001 continuation learning rate improved policy targets but made value retention unstable. A fresh balanced 512-position solver set also showed lower value-sign accuracy than the pretrained checkpoint.",
+  "controlled_screen": {
+    "jobs": [33978, 33979],
+    "learning_rates": [0.001, 0.0005, 0.00025, 0.0001],
+    "selected_learning_rate": 0.0001,
+    "reason": "It retained all tactical and swap gates across the same four tranches, ended with the best value MSE, and improved solver-policy accuracy over the pretrained checkpoint."
+  }
+}

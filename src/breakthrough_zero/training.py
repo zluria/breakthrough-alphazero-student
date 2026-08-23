@@ -214,6 +214,7 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
         network = GameNetwork(config["board_size"])
     else:
         network = load_network(initial_checkpoint)
+    network.model.optimizer.learning_rate.assign(config["learning_rate"])
 
     replay = ReplayBuffer(config["replay_capacity"], config["seed"])
     total_fresh_positions = 0
@@ -377,6 +378,7 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
             "total_fresh_positions": total_fresh_positions,
             "examples_presented": total_examples_presented,
             "examples_presented_this_iteration": iteration_examples,
+            "learning_rate": config["learning_rate"],
             "replay_consumption_ratio": ratio,
             "replay": replay.metrics(iteration),
             "loss": mean_loss(losses, "loss"),

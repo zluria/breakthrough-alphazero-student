@@ -14,6 +14,8 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 | Required dummy-PUCT corpus | 5x5 | 10,000 games, 121,565 positions, 100 visits/root; gzip and SHA-256 verified | Slurm job 33970 |
 | Dummy-PUCT neural pretraining | 5x5 | 1,000 held-out games; final val policy/value loss 2.233/0.746; tactical value 83.3%, policy 100%; swap error 0 | Slurm job 33972 |
 | AlphaZero learning, attempt 1 | 5x5 | Stopped: iteration-0 tactical value accuracy fell 83.3%→66.7%; alarm baseline bug found and fixed | Slurm job 33973 |
+| AlphaZero learning, attempt 2 | 5x5 | Stopped after iteration 3: tactical value 83.3%→66.7%; policy 100%, swap error 0, replay consumption 0.724 | Slurm job 33977 |
+| Continuation learning-rate screen | 5x5 | `0.001` and `0.0005` failed retention; `0.00025` and `0.0001` passed all four fixed-data tranches; selected `0.0001` | Slurm jobs 33978-33979 |
 
 ## Playing strength
 

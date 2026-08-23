@@ -1,0 +1,197 @@
+2026-08-23 21:44:07.970722: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 21:44:07.970746: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 21:44:07.970752: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 21:44:07.974236: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-23 21:44:11.208185: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.223633: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.223790: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.224200: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.224312: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.224414: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.279971: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.280122: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.280233: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:44:11.280315: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 21:44:12.329596: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 21:44:12.370499: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 21:44:12.417920: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 21:44:12.479727: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x7f4b46653980 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2026-08-23 21:44:12.479748: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): NVIDIA GeForce RTX 2080 SUPER, Compute Capability 7.5
+2026-08-23 21:44:12.482945: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2026-08-23 21:44:12.527421: I ./tensorflow/compiler/jit/device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+
+{
+  "dataset": {
+    "examples": 512,
+    "positive": 256,
+    "negative": 256
+  },
+  "reports": [
+    {
+      "learning_rate": 0.001,
+      "iterations": [
+        {
+          "iteration": 0,
+          "value_accuracy": 0.927734375,
+          "value_mse": 0.2260817289352417,
+          "policy_accuracy": 0.435546875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "value_accuracy": 0.91796875,
+          "value_mse": 0.21898090839385986,
+          "policy_accuracy": 0.455078125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "value_accuracy": 0.88671875,
+          "value_mse": 0.3315006196498871,
+          "policy_accuracy": 0.423828125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "value_accuracy": 0.921875,
+          "value_mse": 0.2586365342140198,
+          "policy_accuracy": 0.44140625,
+          "tactical_value_accuracy": 0.6666666666666666,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.0005,
+      "iterations": [
+        {
+          "iteration": 0,
+          "value_accuracy": 0.927734375,
+          "value_mse": 0.22515620291233063,
+          "policy_accuracy": 0.42578125,
+          "tactical_value_accuracy": 0.6666666666666666,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "value_accuracy": 0.921875,
+          "value_mse": 0.23433592915534973,
+          "policy_accuracy": 0.451171875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "value_accuracy": 0.921875,
+          "value_mse": 0.24397534132003784,
+          "policy_accuracy": 0.41796875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "value_accuracy": 0.90625,
+          "value_mse": 0.2823995351791382,
+          "policy_accuracy": 0.3984375,
+          "tactical_value_accuracy": 0.6666666666666666,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.00025,
+      "iterations": [
+        {
+          "iteration": 0,
+          "value_accuracy": 0.9296875,
+          "value_mse": 0.23319053649902344,
+          "policy_accuracy": 0.421875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "value_accuracy": 0.9296875,
+          "value_mse": 0.22395212948322296,
+          "policy_accuracy": 0.435546875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "value_accuracy": 0.923828125,
+          "value_mse": 0.22927355766296387,
+          "policy_accuracy": 0.447265625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "value_accuracy": 0.931640625,
+          "value_mse": 0.2190721482038498,
+          "policy_accuracy": 0.42578125,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    },
+    {
+      "learning_rate": 0.0001,
+      "iterations": [
+        {
+          "iteration": 0,
+          "value_accuracy": 0.9296875,
+          "value_mse": 0.24107316136360168,
+          "policy_accuracy": 0.40234375,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 1,
+          "value_accuracy": 0.931640625,
+          "value_mse": 0.2323375642299652,
+          "policy_accuracy": 0.419921875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 2,
+          "value_accuracy": 0.93359375,
+          "value_mse": 0.2260773777961731,
+          "policy_accuracy": 0.419921875,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        },
+        {
+          "iteration": 3,
+          "value_accuracy": 0.931640625,
+          "value_mse": 0.21487465500831604,
+          "policy_accuracy": 0.431640625,
+          "tactical_value_accuracy": 0.8333333333333334,
+          "tactical_policy_accuracy": 1.0,
+          "swap_error": 0.0
+        }
+      ]
+    }
+  ]
+}
+

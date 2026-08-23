@@ -1,0 +1,70 @@
+{
+  "dataset": {
+    "examples": 512,
+    "positive": 256,
+    "negative": 256
+  },
+  "results": [
+    {
+      "name": "pretrained",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/checkpoints/pretrained-5x5.keras",
+      "value_accuracy": 0.935546875,
+      "value_mse": 0.24746066331863403,
+      "policy_accuracy": 0.396484375,
+      "mean_positive_prediction": 0.699644923210144,
+      "mean_negative_prediction": -0.6734948754310608,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0000",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0000.keras",
+      "value_accuracy": 0.927734375,
+      "value_mse": 0.2260817289352417,
+      "policy_accuracy": 0.435546875,
+      "mean_positive_prediction": 0.7765899896621704,
+      "mean_negative_prediction": -0.7125812768936157,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0001",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0001.keras",
+      "value_accuracy": 0.91796875,
+      "value_mse": 0.21898092329502106,
+      "policy_accuracy": 0.455078125,
+      "mean_positive_prediction": 0.8270017504692078,
+      "mean_negative_prediction": -0.7738895416259766,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0002",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0002.keras",
+      "value_accuracy": 0.88671875,
+      "value_mse": 0.33150070905685425,
+      "policy_accuracy": 0.423828125,
+      "mean_positive_prediction": 0.864628255367279,
+      "mean_negative_prediction": -0.4853958487510681,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0003",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0003.keras",
+      "value_accuracy": 0.921875,
+      "value_mse": 0.25863558053970337,
+      "policy_accuracy": 0.44140625,
+      "mean_positive_prediction": 0.634127140045166,
+      "mean_negative_prediction": -0.8563801646232605,
+      "tactical_value_accuracy": 0.6666666666666666,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    }
+  ]
+}
+

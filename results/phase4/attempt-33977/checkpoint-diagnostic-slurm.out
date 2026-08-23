@@ -1,0 +1,89 @@
+2026-08-23 21:40:27.422348: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-08-23 21:40:27.422375: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-08-23 21:40:27.422381: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-08-23 21:40:27.425871: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-08-23 21:40:30.480745: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.496190: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.496336: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.496721: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.496824: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.496914: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.553935: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.554068: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.554168: I tensorflow/compiler/xla/stream_executor/cuda/cuda_gpu_executor.cc:894] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2026-08-23 21:40:30.554238: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1886] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6797 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 2080 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5
+2026-08-23 21:40:30.761715: I tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:442] Loaded cuDNN version 8907
+2026-08-23 21:40:30.805934: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+2026-08-23 21:40:30.850661: I tensorflow/tsl/platform/default/subprocess.cc:304] Start cannot spawn child process: No such file or directory
+
+{
+  "dataset": {
+    "examples": 512,
+    "positive": 256,
+    "negative": 256
+  },
+  "results": [
+    {
+      "name": "pretrained",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/checkpoints/pretrained-5x5.keras",
+      "value_accuracy": 0.935546875,
+      "value_mse": 0.24746066331863403,
+      "policy_accuracy": 0.396484375,
+      "mean_positive_prediction": 0.699644923210144,
+      "mean_negative_prediction": -0.6734948754310608,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0000",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0000.keras",
+      "value_accuracy": 0.927734375,
+      "value_mse": 0.2260817289352417,
+      "policy_accuracy": 0.435546875,
+      "mean_positive_prediction": 0.7765899896621704,
+      "mean_negative_prediction": -0.7125812768936157,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0001",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0001.keras",
+      "value_accuracy": 0.91796875,
+      "value_mse": 0.21898092329502106,
+      "policy_accuracy": 0.455078125,
+      "mean_positive_prediction": 0.8270017504692078,
+      "mean_negative_prediction": -0.7738895416259766,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0002",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0002.keras",
+      "value_accuracy": 0.88671875,
+      "value_mse": 0.33150070905685425,
+      "policy_accuracy": 0.423828125,
+      "mean_positive_prediction": 0.864628255367279,
+      "mean_negative_prediction": -0.4853958487510681,
+      "tactical_value_accuracy": 0.8333333333333334,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    },
+    {
+      "name": "iteration-0003",
+      "checkpoint": "/home/zurlu/breakthrough-alphazero-student/results/phase4/learn-5x5/checkpoints/iteration-0003.keras",
+      "value_accuracy": 0.921875,
+      "value_mse": 0.25863558053970337,
+      "policy_accuracy": 0.44140625,
+      "mean_positive_prediction": 0.634127140045166,
+      "mean_negative_prediction": -0.8563801646232605,
+      "tactical_value_accuracy": 0.6666666666666666,
+      "tactical_policy_accuracy": 1.0,
+      "swap_error": 0.0
+    }
+  ]
+}
+
