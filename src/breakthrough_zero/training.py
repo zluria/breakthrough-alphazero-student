@@ -76,6 +76,8 @@ def train_pretrained_network(
     epochs: int = 8,
     batch_size: int = 128,
     seed: int = 20260811,
+    filters: int = 48,
+    residual_blocks: int = 3,
 ) -> dict:
     """Train MSE value and cross-entropy policy heads from dummy-MCTS data."""
 
@@ -91,7 +93,9 @@ def train_pretrained_network(
     x, p, z = x[order], p[order], z[order]
     split = max(1, int(0.9 * len(x)))
     GameNetwork._tf().keras.utils.set_random_seed(seed)
-    network = GameNetwork(board_size)
+    network = GameNetwork(
+        board_size, filters=filters, residual_blocks=residual_blocks
+    )
     history = network.fit(
         x[:split],
         p[:split],
@@ -106,6 +110,7 @@ def train_pretrained_network(
         "data": str(data_path),
         "checkpoint": str(output_path),
         "records": len(records),
+        "network": {"filters": filters, "residual_blocks": residual_blocks},
         "conversion": conversion,
         "history": {key: [float(v) for v in values] for key, values in history.history.items()},
         "tactical": evaluate_tactical_suite(network) if board_size == 5 else None,
@@ -124,7 +129,7 @@ class LoopConfig:
     batch_size: int = 64
     replay_capacity: int = 20_000
     seed: int = 20260811
-    dirichlet_alpha: float = 0.3
+    dirichlet_alpha: float | None = 0.3
     dirichlet_fraction: float = 0.25
     temperature: float = 1.0
     temperature_plies: int = 8

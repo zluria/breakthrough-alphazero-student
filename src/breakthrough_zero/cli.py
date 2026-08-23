@@ -102,6 +102,8 @@ def build_parser() -> argparse.ArgumentParser:
     pretrain.add_argument("--epochs", type=int, default=8)
     pretrain.add_argument("--batch-size", type=int, default=128)
     pretrain.add_argument("--seed", type=int, default=20260811)
+    pretrain.add_argument("--filters", type=int, default=48)
+    pretrain.add_argument("--residual-blocks", type=int, default=3)
 
     learn = subparsers.add_parser("learn", help="run synchronous AlphaZero learning")
     learn.add_argument("--config", required=True)
@@ -160,6 +162,8 @@ def main(argv: list[str] | None = None) -> int:
             epochs=args.epochs,
             batch_size=args.batch_size,
             seed=args.seed,
+            filters=args.filters,
+            residual_blocks=args.residual_blocks,
         )
         _write_json(args.report, report)
         print(json.dumps(report, indent=2))
