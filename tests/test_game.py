@@ -43,6 +43,8 @@ class GameRulesTests(unittest.TestCase):
         self.assertEqual(small.board.count(PLAYER_2), 5)
         self.assertEqual(standard.board.count(PLAYER_1), 16)
         self.assertEqual(standard.board.count(PLAYER_2), 16)
+        self.assertEqual(small.action_size, 75)
+        self.assertEqual(standard.action_size, 192)
 
     def test_generator_matches_independent_reference_during_games(self) -> None:
         rng = random.Random(20260811)
