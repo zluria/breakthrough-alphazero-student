@@ -9,7 +9,7 @@ import time
 
 import numpy as np
 
-from .data import append_records, play_self_play_game, read_records
+from .data import append_records, play_self_play_game, read_records, write_records
 from .diagnostics import evaluate_tactical_suite
 from .evaluation import evaluate_pair
 from .game import Breakthrough
@@ -87,20 +87,33 @@ def train_pretrained_network(
     board_size = records[0].board_size
     if any(record.board_size != board_size for record in records):
         raise ValueError("one pretraining file must contain a single board size")
-    x, p, z, conversion = records_to_training_arrays(records, augment=True)
     rng = np.random.default_rng(seed)
+    game_ids = np.asarray(sorted({record.game_index for record in records}))
+    rng.shuffle(game_ids)
+    validation_game_count = max(1, len(game_ids) // 10)
+    validation_games = set(int(game) for game in game_ids[:validation_game_count])
+    training_records = [r for r in records if r.game_index not in validation_games]
+    validation_records = [r for r in records if r.game_index in validation_games]
+    x, p, z, training_conversion = records_to_training_arrays(
+        training_records, augment=True
+    )
+    validation_x, validation_p, validation_z, validation_conversion = (
+        records_to_training_arrays(validation_records, augment=True)
+    )
     order = rng.permutation(len(x))
     x, p, z = x[order], p[order], z[order]
-    split = max(1, int(0.9 * len(x)))
     GameNetwork._tf().keras.utils.set_random_seed(seed)
     network = GameNetwork(
         board_size, filters=filters, residual_blocks=residual_blocks
     )
     history = network.fit(
-        x[:split],
-        p[:split],
-        z[:split],
-        validation_data=(x[split:], {"policy": p[split:], "value": z[split:]}),
+        x,
+        p,
+        z,
+        validation_data=(
+            validation_x,
+            {"policy": validation_p, "value": validation_z},
+        ),
         epochs=epochs,
         batch_size=batch_size,
         verbose=2,
@@ -111,7 +124,10 @@ def train_pretrained_network(
         "checkpoint": str(output_path),
         "records": len(records),
         "network": {"filters": filters, "residual_blocks": residual_blocks},
-        "conversion": conversion,
+        "training_conversion": training_conversion,
+        "validation_conversion": validation_conversion,
+        "training_games": len(game_ids) - validation_game_count,
+        "validation_games": validation_game_count,
         "history": {key: [float(v) for v in values] for key, values in history.history.items()},
         "tactical": evaluate_tactical_suite(network) if board_size == 5 else None,
     }
@@ -172,6 +188,10 @@ def run_learning_loop(
     metric_path = run_dir / "metrics.jsonl"
     raw_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    if metric_path.exists():
+        raise FileExistsError(
+            f"run directory already contains metrics; choose a fresh run_dir: {metric_path}"
+        )
     GameNetwork._tf().keras.utils.set_random_seed(config.seed)
     if initial_checkpoint:
         network = GameNetwork.load(initial_checkpoint)
@@ -212,12 +232,27 @@ def run_learning_loop(
                 )
             )
         raw_path = raw_dir / f"iteration-{iteration:04d}.jsonl.gz"
-        append_records(raw_path, fresh)
-        replay.add(fresh, iteration)
+        if raw_path.exists():
+            raise FileExistsError(f"refusing to append duplicate iteration data: {raw_path}")
+        write_records(raw_path, fresh)
+        validation_game_count = max(1, config.games_per_iteration // 8)
+        validation_start = (
+            iteration * config.games_per_iteration
+            + config.games_per_iteration
+            - validation_game_count
+        )
+        validation_records = [
+            record for record in fresh if record.game_index >= validation_start
+        ]
+        replay_records = [
+            record for record in fresh if record.game_index < validation_start
+        ]
+        replay.add(replay_records, iteration)
         total_fresh_positions += len(fresh)
 
         losses: list[dict] = []
         duplicate_count = 0
+        iteration_examples_presented = 0
         last_x = last_p = None
         records_per_batch = max(1, config.batch_size // 2)
         for _ in range(config.train_steps):
@@ -231,7 +266,17 @@ def run_learning_loop(
             )
             losses.append({key: float(value) for key, value in result.items()})
             total_examples_presented += len(x)
+            iteration_examples_presented += len(x)
             last_x, last_p = x, p
+
+        validation_x, validation_p, validation_z, _ = records_to_training_arrays(
+            validation_records, augment=True
+        )
+        validation_loss = network.model.test_on_batch(
+            validation_x,
+            {"policy": validation_p, "value": validation_z},
+            return_dict=True,
+        )
 
         checkpoint = checkpoint_dir / f"iteration-{iteration:04d}.keras"
         network.save(checkpoint)
@@ -271,7 +316,7 @@ def run_learning_loop(
         }
         alarms: list[str] = []
         replay_metrics = replay.metrics(iteration)
-        ratio = total_examples_presented / max(1, total_fresh_positions)
+        ratio = total_examples_presented / max(1, replay.total_added)
         if not 0.25 <= ratio <= 8.0:
             alarms.append(f"replay consumption ratio {ratio:.3f} is outside [0.25, 8.0]")
         if regression_arena["score_95_interval"][1] < 0.5:
@@ -294,13 +339,23 @@ def run_learning_loop(
             "iteration": iteration,
             "fresh_games": config.games_per_iteration,
             "fresh_positions": len(fresh),
+            "validation_positions": len(validation_records),
+            "replay_positions_added": len(replay_records),
             "total_fresh_positions": total_fresh_positions,
             "examples_presented": total_examples_presented,
+            "examples_presented_this_iteration": iteration_examples_presented,
             "replay_consumption_ratio": ratio,
             "replay": replay_metrics,
             "loss": _mean_loss(losses, "loss"),
             "policy_loss": _mean_loss(losses, "policy_loss"),
             "value_loss": _mean_loss(losses, "value_loss"),
+            "validation_loss": float(validation_loss.get("loss", 0.0)),
+            "validation_policy_loss": float(
+                validation_loss.get("policy_loss", 0.0)
+            ),
+            "validation_value_loss": float(
+                validation_loss.get("value_loss", 0.0)
+            ),
             "policy_kl": _policy_kl(network, last_x, last_p),
             "symmetry_duplicates_removed": duplicate_count,
             "positions_per_second": len(fresh) / max(elapsed, 1e-9),
