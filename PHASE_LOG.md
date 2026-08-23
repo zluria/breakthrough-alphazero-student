@@ -10,7 +10,7 @@
 
 - Date: 2026-08-23
 - Command: bundled Python 3.12 `unittest` discovery with `src` on the import path.
-- Result: 30 tests passed except one expected TensorFlow-only skip; 1.140 seconds for the complete suite after data/evaluation tests were added.
+- Current result: 34 tests discovered; 32 pass locally and two TensorFlow-only tests skip because the bundled local runtime does not include TensorFlow. Keras save/load passed in the Slurm smoke gate; the later-added native 5x5/8x8 shape test must run in the next TensorFlow Slurm gate.
 - Sanity checks: independent rule generator, exact make/unmake restoration, captures and straight restrictions, terminal goal and no-reply handling, no terminal turn switch, all legal policy round trips, symmetry involutions/commutation, and alpha-beta versus brute-force solving.
 - Review: board remains a flat list; no bitboards, padding, caches, or search-specific state leaked into the rules.
 
@@ -28,10 +28,11 @@
 - Tracked weakness: the network chose the unique correct forced-defense action for both colors but assigned the resulting position a pessimistic value sign. This is not hidden; later tactical alarms must show that it improves or at least does not deteriorate.
 - Review: removing Batch Normalization made the native small CNN simpler and eliminated the train/inference statistics mismatch. The diagnostic checkpoint is evidence only and is not used as assignment pretraining.
 
-## Phase 3: dummy PUCT and required pretraining - ready for required data generation
+## Phase 3: dummy PUCT and required pretraining - generation in progress
 
 - Local tests pass absolute backup, player-aware selection, parent-Q FPU, immediate wins for both players, swapped values, and input immutability.
-- The required 10,000-game raw dataset awaits Phase 2 success.
+- Slurm job 33970 started the required 10,000-game dummy-PUCT generation on `HPC-RTX2080s-01` from source commit `31b3f8d31f89da58cfabe80f011ed6f61f135dee` (retained on the local audit branch after the no-reply metadata rewrite).
+- A running-state snapshot at 20 minutes showed no failure signal. Completion metrics are intentionally not claimed until Slurm and the generated report both finish successfully.
 
 ## Phases 4-7 - pending
 

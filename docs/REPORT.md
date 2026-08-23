@@ -4,7 +4,7 @@
 
 This project develops a compact AlphaZero-style engine for Breakthrough. Correctness is established in stages: a flat-list rules implementation is checked against an independent move generator; alpha-beta is checked against brute force; a two-plane mover-relative CNN is isolated behind one absolute-value conversion boundary; PUCT is tested with an assignment-prescribed dummy evaluator before being connected to the CNN. Training uses root visit counts for the policy target and final outcomes for the value target. The final study compares agents under reproducible, color-paired opening prefixes and equal wall-clock move budgets.
 
-The final numerical summary will be inserted only from completed JSON and Slurm artifacts. At the current verified gate, the local suite discovers 32 tests (31 pass and the TensorFlow-only test skips), the skipped Keras test passed on the HPC, and the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy, 100% tactical policy accuracy, and exact player-swap consistency.
+The final numerical summary will be inserted only from completed JSON and Slurm artifacts. At the current verified gate, the local suite discovers 34 tests (32 pass and two TensorFlow-only tests skip locally), Keras save/load has passed in the TensorFlow HPC environment, the later-added native-shape test awaits the next Slurm gate, and the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy, 100% tactical policy accuracy, and exact player-swap consistency.
 
 ## 1. Assignment and scope
 

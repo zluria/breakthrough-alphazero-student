@@ -6,7 +6,7 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 
 | Gate | Board | Result | Evidence |
 |---|---:|---|---|
-| Rules/search unit tests | 5x5 and 8x8 | 30 pass, 1 TensorFlow-only skip | Local run, 2026-08-23 |
+| Rules/search/data/evaluation unit tests | 5x5 and 8x8 | 34 discovered: 32 pass locally, 2 TensorFlow-only skips | Local run, 2026-08-23; Keras save/load exercised by Slurm smoke; native-shape test awaits next Slurm gate |
 | Keras save/load | 5x5 | Pass | Slurm job 33967, TensorFlow 2.14 on RTX 2080 SUPER |
 | Dummy-MCTS data smoke | 5x5 | 2 games, 49 positions, 4 visits/root | Slurm job 33967 |
 | Solver-supervised diagnostic, attempt 1 | 5x5 | Rejected: memorized training data, 0.0 tactical value accuracy | Slurm job 33968 |
