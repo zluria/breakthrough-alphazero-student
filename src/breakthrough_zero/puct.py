@@ -164,9 +164,20 @@ class PUCTPlayer:
             completed += 1
 
         visit_counts = {}
+        priors = {}
+        q_values = {}
         for action in root.children:
-            visit_counts[action] = root.children[action].visits
-        return {"visit_counts": visit_counts}
+            child = root.children[action]
+            visit_counts[action] = child.visits
+            priors[action] = child.prior
+            q_values[action] = child.q
+        return {
+            "visit_counts": visit_counts,
+            "priors": priors,
+            "q_values": q_values,
+            "root_visits": root.visits,
+            "root_q": root.q,
+        }
 
     def choose_move(self, game, add_root_noise=False):
         result = self.search(game, add_root_noise)

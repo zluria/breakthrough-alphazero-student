@@ -85,6 +85,13 @@ class PUCTTests(unittest.TestCase):
         after = (game.board, game.player_to_move, game.winner)
         self.assertEqual(after, before)
 
+    def test_search_reports_child_statistics(self):
+        game = Breakthrough(5, 1)
+        result = PUCTPlayer(HeuristicEvaluator(), 8).search(game)
+        self.assertEqual(result["root_visits"], 8)
+        self.assertEqual(set(result["priors"]), set(game.legal_actions()))
+        self.assertEqual(set(result["q_values"]), set(game.legal_actions()))
+
 
 if __name__ == "__main__":
     unittest.main()

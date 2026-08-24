@@ -14,7 +14,8 @@ The implementation uses lists, tuples, dictionaries, loops, functions, classes, 
 - An undo-history entry is the tuple `(move, captured_piece)`.
 - A self-play position, search result, metric, and report is a dictionary.
 - A symmetry is the tuple `(swap_players, reflect_left_right)` and is applied by functions.
-- Classes are reserved for the game, agents, neural network, replay buffer, and PUCT node/player, where mutable state is genuinely useful.
+- Classes hold genuinely mutable state: the game, agents, neural network,
+  replay buffer, PUCT node/player, and local GUI window.
 
 ## The game
 
@@ -92,6 +93,16 @@ breakthrough-zero learn \
   --run-dir results/phase4/learn-5x5 \
   --checkpoint checkpoints/pretrained-5x5.keras \
   --report results/phase4/learn-5x5-report.json
+```
+
+Run the local graphical board to play either color against a trained checkpoint.
+After each network move, the table shows the final PUCT prior, visit count,
+absolute Player-1 Q, exploration bonus, and selection score for every legal move.
+On Windows, `play_gui.bat` launches the installed local checkpoint directly.
+
+```bash
+breakthrough-zero gui \
+  --checkpoint results/phase4/learn-5x5/checkpoints/iteration-0019-inference.h5
 ```
 
 Raw records preserve the position, player, legal relative actions, visit counts, and final absolute outcome. That is enough to reconstruct the policy and value targets.

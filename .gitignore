@@ -11,4 +11,5 @@ data/raw/*
 !data/raw/.gitkeep
 results/generated/*
 results/**/*.keras
+results/**/*.h5
 .DS_Store

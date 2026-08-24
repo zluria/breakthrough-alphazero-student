@@ -93,6 +93,10 @@ def build_parser():
     learn.add_argument("--checkpoint")
     learn.add_argument("--report", required=True)
 
+    gui = commands.add_parser("gui")
+    gui.add_argument("--checkpoint", required=True)
+    gui.add_argument("--simulations", type=int, default=100)
+
     inspect = commands.add_parser("inspect-data")
     inspect.add_argument("--data", required=True)
 
@@ -153,6 +157,12 @@ def main(arguments=None):
         )
         write_json(args.report, report)
         print(json.dumps(report, indent=2))
+        return 0
+
+    if args.command == "gui":
+        from .gui import run_gui
+
+        run_gui(args.checkpoint, args.simulations)
         return 0
 
     if args.command == "inspect-data":
