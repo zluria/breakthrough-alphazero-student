@@ -1,4 +1,9 @@
-"""The PLAY, REPLAY, TRAIN loop."""
+"""The synchronous PLAY, REPLAY, TRAIN loop.
+
+At each iteration the current network is frozen as the actor, the actor produces
+self-play search targets, and the network trains from the replay window. The
+updated network is then compared with that frozen actor before the next cycle.
+"""
 
 import hashlib
 import json
@@ -32,6 +37,8 @@ def file_sha256(path):
 
 
 def generate_pretraining_data(config, output_path):
+    """Generate search targets using rollouts in place of a neural evaluator."""
+
     if os.path.exists(output_path):
         raise FileExistsError("refusing to overwrite raw data: " + output_path)
 
@@ -76,6 +83,8 @@ def train_pretrained_network(
     filters=48,
     residual_blocks=3,
 ):
+    """Fit the first policy/value network to rollout-MCTS targets."""
+
     if os.path.exists(output_path):
         raise FileExistsError("refusing to overwrite checkpoint: " + output_path)
     records = read_records(data_path)
@@ -87,6 +96,8 @@ def train_pretrained_network(
         if record["board_size"] != board_size:
             raise ValueError("one data file must contain one board size")
 
+    # Split whole games, rather than individual positions, so nearby states from
+    # one trajectory cannot appear in both training and validation data.
     game_numbers = set()
     for record in records:
         game_numbers.add(record["game_index"])
@@ -168,6 +179,8 @@ def mean_loss(losses, name):
 
 
 def policy_kl(network, inputs, targets):
+    """Measure how far the network policy is from the sampled MCTS policy."""
+
     logits = network.model(inputs, training=False)["policy"].numpy()
     logits = logits - logits.max(axis=1, keepdims=True)
     probabilities = np.exp(logits)
@@ -184,6 +197,8 @@ def tactical_decline_alarms(
     value_tolerance=0.05,
     policy_tolerance=0.10,
 ):
+    """Report meaningful declines from the actor's tactical measurements."""
+
     alarms = []
     current_value = current["mean_signed_value"]
     actor_value = actor["mean_signed_value"]
@@ -201,6 +216,8 @@ def tactical_decline_alarms(
 
 
 def run_learning_loop(config, run_dir, initial_checkpoint=None):
+    """Alternate self-play and replay training, stopping on calibrated alarms."""
+
     raw_dir = os.path.join(run_dir, "raw")
     checkpoint_dir = os.path.join(run_dir, "checkpoints")
     metric_path = os.path.join(run_dir, "metrics.jsonl")
@@ -212,6 +229,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
     if initial_checkpoint is None:
         network = GameNetwork(config["board_size"])
     else:
+        # Loading a Keras checkpoint also restores Adam's momentum and variance
+        # estimates. Only the step size is changed for self-play continuation.
         network = load_network(initial_checkpoint)
     network.model.optimizer.learning_rate.assign(config["learning_rate"])
 
@@ -222,6 +241,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
 
     for iteration in range(config["iterations"]):
         iteration_started = time.perf_counter()
+        # This frozen checkpoint is the exact actor that generates the iteration.
+        # It is also the reference used to judge the update below.
         actor_path = os.path.join(
             checkpoint_dir, "actor-%04d.keras" % iteration
         )
@@ -255,6 +276,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
             raise FileExistsError("iteration data already exists: " + raw_path)
         write_records(raw_path, fresh)
 
+        # Hold out complete fresh games before adding the remaining records to
+        # replay. Validation positions are never sampled for this update.
         validation_games = max(1, config["games_per_iteration"] // 8)
         validation_start = (
             iteration * config["games_per_iteration"]
@@ -279,6 +302,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
         last_policies = None
 
         for unused_step in range(config["train_steps"]):
+            # Symmetry augmentation can yield up to four examples per record.
+            # Starting with half a batch limits the common case to one batch.
             sampled = replay.sample(records_per_batch)
             converted = records_to_training_arrays(sampled, True)
             inputs, policies, values, conversion = converted
@@ -318,6 +343,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
         network.save(checkpoint)
         network.save(latest_checkpoint)
 
+        # Diagnostics compare the trained network with the actor before any new
+        # self-play is generated, isolating the effect of this training update.
         actor_network = load_network(actor_path)
         if config["board_size"] == 5:
             tactics = evaluate_tactical_suite(network)
@@ -337,6 +364,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
             config["cpuct"],
         )
 
+        # Every opening is played with both color assignments, reducing first-
+        # player and opening effects in this small regression arena.
         arena = evaluate_pair(
             latest_agent,
             actor_agent,
@@ -355,6 +384,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
         if ratio < 0.25 or ratio > 8.0:
             alarms.append("replay consumption ratio %.3f is out of range" % ratio)
         if arena["score_95_interval"][1] < 0.5:
+            # Alarm only when even the upper confidence bound says the update is
+            # weaker; a noisy point estimate below 50% is not enough by itself.
             alarms.append("new checkpoint is weaker than its actor")
         if arena["failures"]:
             alarms.append("regression arena had failed games")
@@ -396,6 +427,8 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
         }
         with open(metric_path, "a", encoding="utf-8", newline="\n") as stream:
             stream.write(json.dumps(metric, separators=(",", ":")) + "\n")
+        # Preserve the full metric and checkpoint before stopping, so a failed
+        # update remains available for diagnosis rather than disappearing.
         if alarms:
             raise RuntimeError("; ".join(alarms))
 

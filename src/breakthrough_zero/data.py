@@ -1,4 +1,9 @@
-"""Dictionary self-play records saved as gzip JSON lines."""
+"""Reconstructable self-play records saved as gzip JSON lines.
+
+Each record keeps the position, legal actions, search visits, original priors,
+played action, and final absolute outcome. Training targets and diagnostics can
+therefore be recomputed without playing the games again.
+"""
 
 import gzip
 import json
@@ -20,6 +25,8 @@ def state_from_record(record):
 
 
 def make_record(game, result, game_index, ply, played_action):
+    # The actions are sorted once so the parallel visit-count and prior lists
+    # have an explicit, reproducible correspondence.
     actions = sorted(result["visit_counts"])
     counts = []
     priors = []
@@ -47,6 +54,12 @@ def make_record(game, result, game_index, ply, played_action):
 
 
 def choose_action(result, temperature):
+    """Sample from visit counts raised to ``1 / temperature``.
+
+    Positive temperature encourages varied opening play. At zero temperature,
+    the move with the largest visit count is selected.
+    """
+
     counts = result["visit_counts"]
     actions = np.array(sorted(counts), dtype=np.int64)
     if temperature <= 0.00000001:
@@ -75,6 +88,8 @@ def play_self_play_game(
     ply = 0
 
     while game.status() is None:
+        # Root noise changes which moves MCTS explores. Temperature then controls
+        # how sharply the played move follows the resulting visit counts.
         result = search.search(game, add_root_noise)
         if ply < temperature_plies:
             move_temperature = temperature
@@ -86,6 +101,8 @@ def play_self_play_game(
         game.make_move(game.decode(action))
         ply += 1
 
+    # The value target is the eventual winner, measured in the fixed absolute
+    # convention: 1 for Player 1 and -1 for Player 2.
     for record in records:
         record["final_outcome"] = game.status()
     return records

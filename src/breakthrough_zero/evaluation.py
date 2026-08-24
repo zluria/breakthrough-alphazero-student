@@ -15,6 +15,8 @@ def randomized_openings(
     starting_rows=1,
     prefix_plies=4,
 ):
+    """Generate distinct nonterminal opening prefixes for paired games."""
+
     openings = []
     seen = set()
     attempts = 0
@@ -86,6 +88,8 @@ def play_arena_game(
 
 
 def wilson_interval(successes, games, z=1.96):
+    """Return a binomial score interval that remains useful for small samples."""
+
     if games < 1:
         return (0.0, 1.0)
     proportion = successes / games
@@ -100,6 +104,8 @@ def wilson_interval(successes, games, z=1.96):
 
 
 def score_to_elo(score):
+    """Convert an expected score to the corresponding Elo difference."""
+
     score = max(0.000001, min(0.999999, score))
     return 400 * math.log10(score / (1 - score))
 
@@ -114,6 +120,8 @@ def evaluate_pair(
     board_size=5,
     starting_rows=1,
 ):
+    """Play every opening twice, reversing the agents' colors."""
+
     openings = randomized_openings(
         opening_count,
         board_size,
@@ -122,6 +130,8 @@ def evaluate_pair(
     )
     games = []
     for opening_index in range(len(openings)):
+        # Using the identical opening with both color assignments separates agent
+        # strength from first-player advantage and the luck of one opening draw.
         opening = openings[opening_index]
         game = play_arena_game(
             agent_a,
@@ -197,7 +207,11 @@ def evaluate_pair(
 
 
 def fit_elo_table(reports, anchor):
-    """Fit one connected Bradley-Terry table, with the anchor fixed at zero."""
+    """Fit one connected Bradley-Terry table, with the anchor fixed at zero.
+
+    Only rating differences are identifiable, so fixing one agent at zero sets
+    the origin without changing any predicted matchup probabilities.
+    """
 
     name_set = set()
     for report in reports:
@@ -229,6 +243,8 @@ def fit_elo_table(reports, anchor):
             strength_b = 0.0 if name_b == anchor else strengths[name_index[name_b]]
             difference = max(-30.0, min(30.0, strength_a - strength_b))
             probability = 1.0 / (1.0 + math.exp(-difference))
+            # A half-win and half-loss keep undefeated matchups finite while
+            # having little effect once many games have been played.
             effective_games = games + 1.0
             successes = float(report["agent_a_score"]) + 0.5
             residual = effective_games * probability - successes
@@ -250,6 +266,7 @@ def fit_elo_table(reports, anchor):
         if len(step) == 0 or np.max(np.abs(step)) < 0.000000001:
             break
 
+    # The inverse observed-information matrix approximates rating uncertainty.
     covariance = np.linalg.inv(information)
     scale = 400.0 / math.log(10.0)
     ratings = []

@@ -1,6 +1,8 @@
-"""The four exact Breakthrough transformations.
+"""The four exact Breakthrough transformations used for augmentation.
 
-A symmetry is the tuple ``(swap_players, reflect_left_right)``.
+A symmetry is the tuple ``(swap_players, reflect_left_right)``. Swapping players
+rotates the board by 180 degrees and negates every pawn; a Player-1 win therefore
+becomes a Player-2 win. Left-right reflection does not change the winner.
 """
 
 import numpy as np
@@ -46,6 +48,8 @@ def transform_state(game, symmetry):
             piece = -piece
         board[new_square] = piece
 
+    # State labels must transform with the pieces. This is what makes the
+    # augmented position a genuinely equivalent game state.
     player = game.player_to_move
     winner = game.winner
     if swap_players:
@@ -56,6 +60,8 @@ def transform_state(game, symmetry):
 
 
 def transform_action(game, action, symmetry):
+    # Decode, transform, and encode again so policy targets obey exactly the
+    # same mover-relative action convention as the transformed position.
     move = game.decode(action)
     new_game = transform_state(game, symmetry)
     new_move = transform_move(move, game.board_size, symmetry)
@@ -72,6 +78,8 @@ def transform_policy(game, policy, symmetry):
             new_action = transform_action(game, action, symmetry)
             new_policy[new_action] = probability
         except ValueError:
+            # Some policy-head cells point off the board. They are never legal,
+            # so a valid target must assign them zero probability.
             if probability != 0:
                 raise
     return new_policy

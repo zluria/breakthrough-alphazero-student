@@ -1,4 +1,4 @@
-"""A bounded list of old positions and symmetry augmentation."""
+"""Replay storage and symmetry augmentation for self-play positions."""
 
 import random
 
@@ -23,6 +23,7 @@ class ReplayBuffer:
             self.entries.append((record, iteration))
             self.total_added += 1
         if len(self.entries) > self.capacity:
+            # Keep the most recent experience when the bounded window is full.
             extra = len(self.entries) - self.capacity
             self.entries = self.entries[extra:]
         return len(records)
@@ -31,6 +32,8 @@ class ReplayBuffer:
         if not self.entries:
             raise ValueError("cannot sample an empty replay buffer")
         records = []
+        # Sampling with replacement permits a fixed number of training examples
+        # even during the first iterations, while the replay window is small.
         for unused_number in range(count):
             record, unused_iteration = random.choice(self.entries)
             records.append(record)
@@ -61,6 +64,13 @@ class ReplayBuffer:
 
 
 def records_to_training_arrays(records, augment=True):
+    """Build neural inputs and targets from recorded search positions.
+
+    Policy targets are normalized MCTS visit counts. Game outcomes are stored in
+    the absolute convention and converted here to the mover-relative convention
+    used by the value head.
+    """
+
     inputs = []
     policies = []
     values = []
@@ -94,12 +104,16 @@ def records_to_training_arrays(records, augment=True):
 
             planes = canonical_planes(new_game)
             absolute_outcome = record["final_outcome"]
+            # Swapping player identities reverses an absolute Player-1 outcome.
+            # Reflection alone leaves it unchanged.
             if symmetry[0]:
                 absolute_outcome = -absolute_outcome
             relative_value = boundary.relative_target(
                 absolute_outcome, new_game.player_to_move
             )
 
+            # Symmetric-looking positions can collapse to identical canonical
+            # examples. Count each exact input/target triple only once.
             key = (planes.tobytes(), policy.tobytes(), float(relative_value))
             if key in seen:
                 duplicates += 1

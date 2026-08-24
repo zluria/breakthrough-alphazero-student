@@ -1,7 +1,8 @@
-"""Simple Breakthrough rules on a flat Python list.
+"""Breakthrough rules on a flat Python list.
 
 A move is a tuple: ``(from_square, to_square)``. Squares are ordinary
-zero-based indices into ``board``.
+zero-based indices into ``board``. Player 1 advances toward larger row numbers;
+Player 2 advances toward smaller row numbers.
 """
 
 import numpy as np
@@ -13,6 +14,13 @@ PLAYER_2 = -1
 
 
 class Breakthrough:
+    """A mutable position with reversible moves.
+
+    A terminal move does not switch ``player_to_move``. It therefore remains
+    equal to the player who made the winning move, which keeps terminal values
+    and make/unmake behavior unambiguous.
+    """
+
     def __init__(
         self,
         board_size=5,
@@ -101,6 +109,8 @@ class Breakthrough:
                 target = self.board[to_square]
                 if col_change == 0 and target == EMPTY:
                     moves.append((from_square, to_square))
+                # A diagonal move may capture an opponent or enter an empty
+                # square, but it may not land on a friendly pawn.
                 if col_change != 0 and target != player:
                     moves.append((from_square, to_square))
         return moves
@@ -128,6 +138,8 @@ class Breakthrough:
         if to_row == goal_row or -player not in self.board:
             self.winner = player
             return
+        # Having no legal reply is also a loss in Breakthrough. As with the other
+        # terminal cases, return before changing the side to move.
         if not self.legal_moves_for(-player):
             self.winner = player
             return
@@ -157,11 +169,17 @@ class Breakthrough:
         return self.winner
 
     def canonical_square(self, square):
+        """Rotate Player-2 positions so the mover always advances downward."""
+
         if self.player_to_move == PLAYER_1:
             return square
+        # A 180-degree rotation is its own inverse, so this mapping works in both
+        # the encoder and decoder.
         return self.board_size * self.board_size - 1 - square
 
     def encode_move(self, move):
+        """Map a board move to one of three mover-relative directions."""
+
         from_square, to_square = move
         relative_from = self.canonical_square(from_square)
         relative_to = self.canonical_square(to_square)
@@ -175,6 +193,8 @@ class Breakthrough:
         return relative_from * 3 + col_change + 1
 
     def decode(self, action):
+        """Map a mover-relative policy action back to a board move."""
+
         if action < 0 or action >= self.action_size:
             raise ValueError("action is outside the policy head")
         relative_from, direction = divmod(action, 3)
@@ -202,6 +222,12 @@ class Breakthrough:
         return mask
 
     def encode(self):
+        """Flatten the two canonical neural-input planes.
+
+        No turn plane is needed because canonicalization always presents the
+        current player as the mover.
+        """
+
         from .neural import canonical_planes
 
         return canonical_planes(self).reshape(-1)

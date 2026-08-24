@@ -1,4 +1,9 @@
-"""Mover-relative neural input and the one value-conversion boundary."""
+"""Neural input, policy masking, and value-perspective conversion.
+
+The network always sees the side to move as "me" advancing toward larger row
+numbers. Its value is therefore mover-relative. PUCT uses absolute Player-1
+values, and ``NeuralBoundary`` is the one place that converts between them.
+"""
 
 import os
 
@@ -8,7 +13,11 @@ from .game import PLAYER_1
 
 
 def canonical_planes(game):
-    """Return two planes: the mover's pawns and the opponent's pawns."""
+    """Return two planes: the mover's pawns and the opponent's pawns.
+
+    Player-2 positions are rotated by 180 degrees, so the same pattern has the
+    same representation whichever color is to move.
+    """
 
     board = np.array(game.board, dtype=np.int8)
     board = board.reshape(game.board_size, game.board_size)
@@ -21,7 +30,7 @@ def canonical_planes(game):
 
 
 def masked_softmax(logits, legal_mask):
-    """Softmax over legal actions, with zero on every illegal action."""
+    """Softmax over legal actions, with exactly zero on illegal actions."""
 
     logits = np.array(logits, dtype=np.float64)
     legal_mask = np.array(legal_mask, dtype=np.bool_)
@@ -32,6 +41,8 @@ def masked_softmax(logits, legal_mask):
         return probabilities
 
     legal_logits = logits[legal_mask]
+    # Subtracting the largest legal logit leaves softmax unchanged and prevents
+    # overflow when exponentiating.
     legal_logits = legal_logits - np.max(legal_logits)
     weights = np.exp(legal_logits)
     probabilities[legal_mask] = weights / weights.sum()
@@ -39,12 +50,13 @@ def masked_softmax(logits, legal_mask):
 
 
 class NeuralBoundary:
-    """The only place that converts relative neural values."""
+    """Convert between mover-relative network values and absolute game values."""
 
     def __init__(self, network=None):
         self.network = network
 
     def absolute_value(self, relative_value, player_to_move):
+        # relative = absolute * player, and player is either 1 or -1.
         return float(relative_value) * player_to_move
 
     def relative_target(self, absolute_value, player_to_move):
@@ -65,7 +77,12 @@ class NeuralBoundary:
 
 
 class GameNetwork:
-    """A native-size Keras policy and value network."""
+    """A residual Keras network with separate policy and value heads.
+
+    Each board size has its own native input and policy size. The policy emits
+    logits for three forward directions from every square; legality is enforced
+    later by ``masked_softmax``.
+    """
 
     def __init__(
         self,
@@ -106,6 +123,8 @@ class GameNetwork:
         x = keras.layers.Activation("relu")(x)
 
         for unused_block in range(self.residual_blocks):
+            # The skip connection lets a block learn a correction to its input,
+            # rather than having to relearn the entire representation.
             old_x = x
             x = keras.layers.Conv2D(
                 self.filters,
@@ -125,6 +144,8 @@ class GameNetwork:
             x = keras.layers.Add()([x, old_x])
             x = keras.layers.Activation("relu")(x)
 
+        # The policy head produces unnormalized action logits. MCTS converts the
+        # legal ones to priors when evaluating a particular position.
         policy = keras.layers.Conv2D(3, 1, activation="relu")(x)
         policy = keras.layers.Flatten()(policy)
         policy = keras.layers.Dense(
@@ -133,6 +154,8 @@ class GameNetwork:
             kernel_regularizer=regularizer,
         )(policy)
 
+        # The value head predicts the final result from the mover's viewpoint;
+        # tanh keeps the prediction in the same [-1, 1] range as game outcomes.
         value = keras.layers.Conv2D(1, 1, activation="relu")(x)
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(
@@ -153,6 +176,7 @@ class GameNetwork:
         return model
 
     def predict_raw(self, planes):
+        # Keras expects a batch dimension even when evaluating one position.
         batch = np.array(planes, dtype=np.float32)[None, ...]
         prediction = self.model(batch, training=False)
         logits = np.array(prediction["policy"])[0]
@@ -182,6 +206,8 @@ class GameNetwork:
         )
 
     def save(self, path):
+        """Save the network together with the Adam optimizer state."""
+
         directory = os.path.dirname(str(path))
         if directory:
             os.makedirs(directory, exist_ok=True)

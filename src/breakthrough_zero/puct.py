@@ -1,4 +1,9 @@
-"""PUCT with absolute Player-1 values."""
+"""PUCT search with values measured from Player 1's point of view.
+
+The evaluator and every node store the same absolute value: positive favors
+Player 1 and negative favors Player 2. Selection accounts for whose turn it is;
+backup therefore does not alternate the sign.
+"""
 
 import math
 import time
@@ -9,7 +14,7 @@ from .agents import rollout_outcome
 
 
 class RolloutEvaluator:
-    """Uniform legal priors and one random rollout."""
+    """The non-neural evaluator: uniform priors and one random rollout."""
 
     def __init__(self, tactical=False):
         self.tactical = tactical
@@ -25,6 +30,8 @@ class RolloutEvaluator:
 
 
 class NeuralEvaluator:
+    """Adapt the neural boundary to the evaluator interface used by PUCT."""
+
     def __init__(self, boundary):
         self.boundary = boundary
 
@@ -34,6 +41,12 @@ class NeuralEvaluator:
 
 
 class PUCTNode:
+    """Search statistics for one state reached through its parent's action.
+
+    ``value_sum`` and ``q()`` are always absolute Player-1 values. Children are
+    indexed by mover-relative policy actions.
+    """
+
     def __init__(self, prior):
         self.prior = float(prior)
         self.visit_count = 0
@@ -72,6 +85,8 @@ class PUCTPlayer:
         self.dirichlet_fraction = dirichlet_fraction
 
     def child_q(self, parent, child):
+        # First-play urgency gives an unvisited move the parent's current value.
+        # This avoids treating every new move as if its value were exactly zero.
         if child.visit_count == 0:
             return parent.q()
         return child.q()
@@ -94,6 +109,8 @@ class PUCTPlayer:
                 * parent_scale
                 / (1 + child.visit_count)
             )
+            # Player 1 maximizes Q and Player 2 minimizes it. Multiplying by the
+            # parent player lets both cases use the same maximizing selection.
             score = parent_player * q + exploration
             if score > best_score:
                 best_score = score
@@ -102,11 +119,15 @@ class PUCTPlayer:
         return best_action, best_child
 
     def backup(self, path, absolute_value):
+        # The value has already been converted to Player 1's viewpoint, so its
+        # sign stays unchanged at every level of the path.
         for node in path:
             node.visit_count += 1
             node.value_sum += absolute_value
 
     def add_root_noise(self, root):
+        # Dirichlet noise is applied only at the root during self-play. It makes
+        # different games investigate different plausible opening moves.
         if self.dirichlet_alpha is None:
             return
         actions = sorted(root.children)
@@ -133,16 +154,22 @@ class PUCTPlayer:
         root = PUCTNode(1.0)
         priors, unused_value = self.evaluator.evaluate(game.clone())
         root.expand(priors)
+        # Keep the evaluator's priors as search evidence. Root noise changes the
+        # search trajectory and visit target, but not this recorded prediction.
         original_priors = dict(priors)
         if add_root_noise:
             self.add_root_noise(root)
 
         completed = 0
         while completed < self.simulations and time.perf_counter() < deadline:
+            # Each simulation uses a clone, so search cannot change the position
+            # supplied by its caller.
             state = game.clone()
             node = root
             path = [root]
 
+            # Selection follows PUCT until it reaches a terminal state or a
+            # previously unvisited child.
             while node.children and state.status() is None:
                 action, node = self.select_child(node, state.player_to_move)
                 state.make_move(state.decode(action))
@@ -153,6 +180,8 @@ class PUCTPlayer:
             if state.status() is not None:
                 value = float(state.status())
             else:
+                # The leaf evaluation supplies both the value to back up and the
+                # policy priors used when this leaf is visited again.
                 leaf_priors, value = self.evaluator.evaluate(state)
                 node.expand(leaf_priors)
             self.backup(path, value)

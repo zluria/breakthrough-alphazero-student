@@ -1,4 +1,4 @@
-"""Solver-labelled examples and a tactical test set."""
+"""Solver-labelled supervision and tactical measurements."""
 
 import json
 import math
@@ -14,7 +14,12 @@ from .symmetry import transform_state
 
 
 def tactical_suite():
-    """Return 20 exact positions and their 20 color-swapped partners."""
+    """Return 20 exact positions and their 20 color-swapped partners.
+
+    The categories cover immediate wins, forced defense, longer forced results,
+    material traps, and pawn races. Color-swapped pairs test the absolute-value
+    convention independently of tactical strength.
+    """
 
     definitions = [
         (
@@ -164,11 +169,16 @@ def tactical_suite():
 
 
 def generate_solver_examples(count, search_depth=6):
+    """Create a balanced set of positions labelled by alpha-beta search."""
+
     if count < 2:
         raise ValueError("count must be at least two")
     target_per_label = count // 2
     solver = AlphaBetaAgent(search_depth)
     boundary = NeuralBoundary()
+    # Balance the labels seen by the mover-relative value head. An absolute set
+    # balanced by winner could still be badly imbalanced after perspective
+    # conversion if one player is usually to move.
     buckets = {1: [], -1: []}
     attempts = 0
 
@@ -224,6 +234,8 @@ def generate_solver_examples(count, search_depth=6):
 
 
 def solver_optimal_actions(game, depth):
+    """Return the best absolute value and every action attaining it."""
+
     values = {}
     for move in game.legal_moves():
         action = game.encode_move(move)
@@ -238,6 +250,8 @@ def solver_optimal_actions(game, depth):
         game.unmake_move(move)
         values[action] = value
 
+    # Values remain absolute: Player 1 chooses the maximum and Player 2 chooses
+    # the minimum, just as in PUCT's player-aware exploitation term.
     if game.player_to_move == 1:
         best_value = max(values.values())
     else:
@@ -250,6 +264,8 @@ def solver_optimal_actions(game, depth):
 
 
 def evaluate_tactical_suite(network, solver_depth=8):
+    """Measure value calibration, policy choices, and color-swap consistency."""
+
     boundary = NeuralBoundary(network)
     rows = []
     for position in tactical_suite():
@@ -261,6 +277,8 @@ def evaluate_tactical_suite(network, solver_depth=8):
         prediction = boundary.predict(game)
         priors = prediction["priors"]
         predicted_action = max(priors, key=priors.get)
+        # The product v*z is a continuous correctness score: +1 is confidently
+        # correct, zero is uncertain, and -1 is confidently wrong.
         signed_value = prediction["value"] * expected_outcome
         rows.append(
             {
@@ -280,6 +298,8 @@ def evaluate_tactical_suite(network, solver_depth=8):
     by_name = {}
     for row in rows:
         by_name[row["name"]] = row
+    # Swapping the players must negate an absolute value prediction. The sum of
+    # each pair should therefore be zero even when the prediction itself is bad.
     swap_errors = []
     for row in rows:
         if row["name"].endswith("_swapped"):
@@ -341,6 +361,8 @@ def run_supervised_diagnostic(
     epochs=24,
     batch_size=64,
 ):
+    """Verify that the policy/value network can learn solver-labelled data."""
+
     import keras
 
     os.makedirs(output_dir, exist_ok=True)

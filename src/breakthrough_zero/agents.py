@@ -58,7 +58,11 @@ def rollout_outcome(game, tactical=False):
 
 
 class AlphaBetaAgent:
-    """An alpha-beta player with absolute Player-1 scores."""
+    """An alpha-beta player with absolute Player-1 scores.
+
+    Player 1 maximizes the score and Player 2 minimizes it. This is the same
+    absolute-value convention used by PUCT.
+    """
 
     def __init__(self, depth=4, time_limit_s=None):
         if depth < 1:
@@ -116,6 +120,8 @@ class AlphaBetaAgent:
             best_value = -math.inf
             for move in moves:
                 game.make_move(move)
+                # Always restore the position, including when a time limit
+                # interrupts the recursive search.
                 try:
                     value, unused_move = self.alpha_beta(
                         game, depth - 1, alpha, beta
@@ -133,6 +139,8 @@ class AlphaBetaAgent:
             best_value = math.inf
             for move in moves:
                 game.make_move(move)
+                # The same restoration invariant is required in the minimizing
+                # branch.
                 try:
                     value, unused_move = self.alpha_beta(
                         game, depth - 1, alpha, beta
@@ -192,12 +200,18 @@ def evaluate_position(game):
         len(game.legal_moves_for(1)) - len(game.legal_moves_for(-1))
     ) / max(1, 3 * size)
 
+    # Material dominates, progress recognizes pawn races, and mobility breaks
+    # ties between positions with similar pieces and advancement.
     value = 0.55 * material + 0.35 * progress + 0.10 * mobility
     return max(-0.99, min(0.99, value))
 
 
 def solve_exact(game, cache=None):
-    """Solve a position by trying every continuation."""
+    """Solve a position by trying every continuation.
+
+    Breakthrough has no draws. If the mover has any continuation that produces
+    its own absolute result, the position is a win; otherwise it is a loss.
+    """
 
     if cache is None:
         cache = {}
