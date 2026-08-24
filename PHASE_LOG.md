@@ -36,7 +36,7 @@
 - Artifact validation: gzip integrity passed; 10,000 distinct games, 121,565 positions, mean game length 12.1565, and exactly 100 mean root visits. Player 1 won 5,577 games.
 - The 9,077,590-byte raw corpus is preserved locally and on the HPC at `data/raw/pretraining-5x5-10000.jsonl.gz` with SHA-256 `fd5ce5b33eb3d673fcd1b57409d0f456c770e1413a56b2b84084ce94337d5c46`. It remains Git-ignored; the report, verification record, and Slurm log are tracked.
 
-## Phase 4: 5x5 AlphaZero learning - pretrained checkpoint passed; self-play learning pending
+## Phase 4: 5x5 AlphaZero learning - passed
 
 - Slurm job 33972 ran commit `a23d351cc9325c30fa47600203418b203c1f42f0` on `HPC-RTX2080s-01` and completed in 2 minutes 31 seconds with exit code 0.
 - Its startup gate ran all 34 tests under TensorFlow 2.14 on an RTX 2080 SUPER. Keras save/load and separate native 75-action 5x5 / 192-action 8x8 shapes both passed.
@@ -59,6 +59,8 @@
 - The expanded suite and exact outcomes pass locally as part of 37 discovered tests; the two Keras tests skip locally. Slurm job 33985 passed all 37 tests under TensorFlow/Keras and evaluated the actual historical checkpoints. The pretrained mean signed value was 0.687569. The unstable 0.001 run then changed by +0.099260, +0.103210, -0.053459, and -0.047258, so the 0.05 tolerance catches its first material decline. The 0.0001 run changed by +0.009275, +0.026593, +0.019285, +0.010530, and +0.005853, confirming that the old binary rejection was a diagnostic artifact. The first fresh 0.00025 update changed by +0.024354.
 - The randomness audit found 64 unique games and 64 unique eight-ply prefixes within every archived 64-game iteration. It also found that separate fresh runs reproduced the same first iteration because they reused fixed random seeds. All fixed-seed plumbing has therefore been removed from live agents, search, self-play, replay, evaluation, commands, configurations, and jobs.
 - Slurm job 33984 compared retained and fresh Adam state on the same five archived data tranches without a fixed seed. The loaded supervised checkpoint carried 13,664 optimizer steps, but resetting Adam did not improve the result: at 0.00025 the retained/fresh conditions ended at solver-policy accuracy 0.4551/0.4434 and tactical mean 0.7301/0.7240. The optimizer is therefore retained. The loop itself is unchanged for the next baseline run.
+- Slurm job 33986 then completed all 20 configured iterations: 1,280 self-play games, 16,704 positions, and 10,240 examples presented over 7,474.6 seconds. Iteration 19 ended with tactical mean signed value 0.884107, 95% sign accuracy, 100% tactical policy accuracy, and zero color-swap error. The accepted checkpoint is `results/phase4/learn-5x5/checkpoints/iteration-0019.keras`, SHA-256 `71dccde76f7cf9274d63f084e27827563d480883ff557fa1ea147c393395355f`.
+- Continuation job 33988 preserved the accepted weights and stopped after its iteration-2 tactical mean fell to 0.809, more than 0.05 below the fixed 0.884107 baseline. Those continuation weights remain as a rejected experiment; they were not silently substituted for the accepted checkpoint.
 
 ## Introductory-Python simplicity refactor - passed locally and on HPC
 
@@ -69,6 +71,18 @@
 - Job 33975 failed before importing the project because it was submitted from the HPC home directory and therefore could not find `tests/`. Job 33976 used the project directory explicitly and completed in nine seconds with exit code zero. This is recorded as an invocation failure, not a code-test failure.
 - The full source was reviewed again after the refactor. No unnecessary indirection found in that pass blocks the introductory-course requirement. Learning was restarted only after this gate passed.
 
-## Phases 5-7 - pending
+## Phase 5: formal 5x5 arena - passed
 
-No playing-strength or research claim is accepted until its configured job and paired arena complete.
+- Slurm job 33994 ran exact commit `24b0f1b` and completed in 7 minutes 50 seconds with exit code zero.
+- Each comparison used 50 unseeded four-ply openings, paired by color, for 100 games at 0.1 seconds per move. All 600 games completed without failure.
+- The accepted iteration-19 checkpoint scored 100% against random, 66% against alpha-beta, 86% against rollout PUCT, 65% against the pretrained checkpoint, and 63% against iteration 0. The corresponding 95% Wilson intervals all exclude 50%.
+- It scored 46% against the rejected continuation iteration 2, with a 95% interval of 36.6%-55.7%. This is a statistical tie. The continuation remains rejected by the predetermined tactical-retention condition, not by a claim that it plays worse.
+
+## Phase 6: native 8x8 transfer - running
+
+- Slurm job 33995 passed the entire native 8x8 smoke path in 34 seconds: two rollout-PUCT games, 40 positions, a tiny network training step, checkpoint save/load, and a four-game paired arena. The 2-2 arena score is a plumbing check, not a strength measurement.
+- Full Slurm job 33996 starts from a new native 8x8 network and native 8x8 dummy-PUCT data. It does not reuse 5x5 positions or weights. The configured stages are 10,000 dummy-PUCT games, neural pretraining, six AlphaZero iterations, and paired arenas against random, alpha-beta, rollout PUCT, and the pretrained 8x8 network.
+
+## Phase 7 - pending
+
+The limited two-factor extension remains pending. Native 8x8 claims remain pending until job 33996 and its paired arenas complete.

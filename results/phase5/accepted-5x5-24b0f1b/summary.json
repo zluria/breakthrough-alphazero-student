@@ -1,0 +1,21 @@
+{
+  "source_commit": "24b0f1b",
+  "slurm_job": 33994,
+  "job_state": "COMPLETED",
+  "elapsed": "00:07:50",
+  "checkpoint": "results/phase4/learn-5x5/checkpoints/iteration-0019.keras",
+  "checkpoint_sha256": "71dccde76f7cf9274d63f084e27827563d480883ff557fa1ea147c393395355f",
+  "board_size": 5,
+  "opening_count_per_comparison": 50,
+  "prefix_plies": 4,
+  "games_per_comparison": 100,
+  "move_seconds": 0.1,
+  "comparisons": [
+    {"opponent": "random", "score": 100.0, "rate": 1.0, "interval_95": [0.963005192523998, 1.0], "failures": 0},
+    {"opponent": "alpha-beta", "score": 66.0, "rate": 0.66, "interval_95": [0.562775456583109, 0.74538620502457], "failures": 0},
+    {"opponent": "rollout-puct", "score": 86.0, "rate": 0.86, "interval_95": [0.778626396161928, 0.914737342455351], "failures": 0},
+    {"opponent": "pretrained", "score": 65.0, "rate": 0.65, "interval_95": [0.55254260429198, 0.73635895346522], "failures": 0},
+    {"opponent": "first-learned", "score": 63.0, "rate": 0.63, "interval_95": [0.532203475751331, 0.718177874304908], "failures": 0},
+    {"opponent": "continuation-0002", "score": 46.0, "rate": 0.46, "interval_95": [0.365606438533319, 0.557353146064761], "failures": 0}
+  ]
+}

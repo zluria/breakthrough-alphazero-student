@@ -7,7 +7,7 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 | Gate | Board | Result | Evidence |
 |---|---:|---|---|
 | Pre-cleanup regression suite | 5x5 and 8x8 | 37/37 pass on HPC; 35 pass and 2 Keras tests skip locally | Slurm jobs 33976 and 33985 |
-| Current simplification patch | 5x5 and 8x8 | 31 available tests pass locally; 2 Keras tests skip pending HPC verification | Local test run, 2026-08-24 |
+| Current implementation | 5x5 and 8x8 | 34/34 pass locally and on the HPC, including Keras save/load and native board shapes | Local run and Slurm job 33993 |
 | Historical Keras save/load | 5x5 | Pass before the current architecture cleanup | Slurm job 33976, TensorFlow 2.14 on RTX 2080 SUPER |
 | Dummy-MCTS data smoke | 5x5 | 2 games, 49 positions, 4 visits/root | Slurm job 33967 |
 | Solver-supervised diagnostic, attempt 1 | 5x5 | Rejected: memorized training data, 0.0 tactical value accuracy | Slurm job 33968 |
@@ -26,8 +26,17 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 
 | Agent A | Agent B | Board | Move budget | Games | Score (95% interval) |
 |---|---|---:|---:|---:|---:|
-| Pending | Pending | 5x5 | 0.1 s | - | - |
+| Accepted iteration 19 | Random | 5x5 | 0.1 s | 100 | 100% (96.3%-100.0%) |
+| Accepted iteration 19 | Alpha-beta | 5x5 | 0.1 s | 100 | 66% (56.3%-74.5%) |
+| Accepted iteration 19 | Rollout PUCT | 5x5 | 0.1 s | 100 | 86% (77.9%-91.5%) |
+| Accepted iteration 19 | Pretrained neural PUCT | 5x5 | 0.1 s | 100 | 65% (55.3%-73.6%) |
+| Accepted iteration 19 | First learned checkpoint | 5x5 | 0.1 s | 100 | 63% (53.2%-71.8%) |
+| Accepted iteration 19 | Rejected continuation iteration 2 | 5x5 | 0.1 s | 100 | 46% (36.6%-55.7%) |
+
+Each comparison in Slurm job 33994 used 50 unseeded four-ply opening prefixes, played once with each color assignment. All 600 games completed without failure. The final comparison does not establish a playing-strength difference: its interval contains 50%.
 
 ## Training progress
 
-Iteration metrics record new positions, replay size, policy/value losses, the 20-position tactical value score, sign accuracy, color-swap error, and checkpoint path.
+Slurm job 33986 completed all 20 configured 5x5 iterations in 2 hours 4 minutes. It generated 1,280 self-play games and 16,704 positions. The accepted iteration-19 checkpoint ended with tactical mean signed value 0.8841, 95% value-sign accuracy, 100% tactical policy accuracy, and zero color-swap error. Its SHA-256 is `71dccde76f7cf9274d63f084e27827563d480883ff557fa1ea147c393395355f`.
+
+Native 8x8 smoke job 33995 completed successfully. Full from-scratch native 8x8 job 33996 is running; no 8x8 strength result is reported before it finishes.
