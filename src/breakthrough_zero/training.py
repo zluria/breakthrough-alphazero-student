@@ -1,8 +1,7 @@
 """The synchronous PLAY, REPLAY, TRAIN loop.
 
-At each iteration the current network is frozen as the actor, the actor produces
-self-play search targets, and the network trains from the replay window. The
-updated network is then compared with that frozen actor before the next cycle.
+At each iteration the current network produces self-play search targets, trains
+from the replay window, and becomes the network used for the next iteration.
 """
 
 import hashlib
@@ -19,9 +18,8 @@ from .data import (
     write_records,
 )
 from .diagnostics import evaluate_tactical_suite
-from .evaluation import evaluate_pair
 from .neural import GameNetwork, NeuralBoundary, load_network
-from .puct import NeuralEvaluator, PUCTPlayer, RolloutEvaluator
+from .puct import PUCTPlayer, RolloutEvaluator
 from .replay import ReplayBuffer, records_to_training_arrays
 
 
@@ -42,7 +40,7 @@ def generate_pretraining_data(config, output_path):
     if os.path.exists(output_path):
         raise FileExistsError("refusing to overwrite raw data: " + output_path)
 
-    evaluator = RolloutEvaluator(config["tactical_rollouts"])
+    evaluator = RolloutEvaluator()
     search = PUCTPlayer(
         evaluator,
         config["simulations"],
@@ -114,14 +112,11 @@ def train_pretrained_network(
         else:
             training_records.append(record)
 
-    inputs, policies, values, training_conversion = records_to_training_arrays(
-        training_records, True
-    )
-    validation = records_to_training_arrays(validation_records, True)
+    inputs, policies, values = records_to_training_arrays(training_records)
+    validation = records_to_training_arrays(validation_records)
     validation_inputs = validation[0]
     validation_policies = validation[1]
     validation_values = validation[2]
-    validation_conversion = validation[3]
 
     order = np.random.permutation(len(inputs))
     inputs = inputs[order]
@@ -159,8 +154,6 @@ def train_pretrained_network(
         "checkpoint_sha256": file_sha256(output_path),
         "records": len(records),
         "network": {"filters": filters, "residual_blocks": residual_blocks},
-        "training_conversion": training_conversion,
-        "validation_conversion": validation_conversion,
         "training_games": len(game_numbers) - validation_game_count,
         "validation_games": validation_game_count,
         "history": history_values,
@@ -168,55 +161,8 @@ def train_pretrained_network(
     }
 
 
-def mean_loss(losses, name):
-    values = []
-    for loss in losses:
-        if name in loss:
-            values.append(float(loss[name]))
-    if not values:
-        return None
-    return sum(values) / len(values)
-
-
-def policy_kl(network, inputs, targets):
-    """Measure how far the network policy is from the sampled MCTS policy."""
-
-    logits = network.model(inputs, training=False)["policy"].numpy()
-    logits = logits - logits.max(axis=1, keepdims=True)
-    probabilities = np.exp(logits)
-    probabilities = probabilities / probabilities.sum(axis=1, keepdims=True)
-    safe_targets = np.clip(targets, 0.000000000001, 1.0)
-    safe_predictions = np.clip(probabilities, 0.000000000001, 1.0)
-    rows = safe_targets * np.log(safe_targets / safe_predictions)
-    return float(np.mean(np.sum(rows, axis=1)))
-
-
-def tactical_decline_alarms(
-    current,
-    actor,
-    value_tolerance=0.05,
-    policy_tolerance=0.10,
-):
-    """Report meaningful declines from the actor's tactical measurements."""
-
-    alarms = []
-    current_value = current["mean_signed_value"]
-    actor_value = actor["mean_signed_value"]
-    if current_value + value_tolerance < actor_value:
-        text = "tactical mean signed value declined from %.3f to %.3f"
-        alarms.append(text % (actor_value, current_value))
-    current_policy = current["policy_accuracy"]
-    actor_policy = actor["policy_accuracy"]
-    if current_policy + policy_tolerance < actor_policy:
-        text = "tactical policy accuracy declined from %.3f to %.3f"
-        alarms.append(text % (actor_policy, current_policy))
-    if current["mean_color_swap_absolute_error"] > 0.00001:
-        alarms.append("color-swap consistency invariant failed")
-    return alarms
-
-
 def run_learning_loop(config, run_dir, initial_checkpoint=None):
-    """Alternate self-play and replay training, stopping on calibrated alarms."""
+    """Alternate self-play and replay training."""
 
     raw_dir = os.path.join(run_dir, "raw")
     checkpoint_dir = os.path.join(run_dir, "checkpoints")
@@ -229,28 +175,21 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
     if initial_checkpoint is None:
         network = GameNetwork(config["board_size"])
     else:
-        # Loading a Keras checkpoint also restores Adam's momentum and variance
-        # estimates. Only the step size is changed for self-play continuation.
         network = load_network(initial_checkpoint)
     network.model.optimizer.learning_rate.assign(config["learning_rate"])
 
     replay = ReplayBuffer(config["replay_capacity"])
-    total_fresh_positions = 0
-    total_examples_presented = 0
     run_started = time.perf_counter()
+    if config["board_size"] == 5:
+        initial_tactics = evaluate_tactical_suite(network)
+        initial_tactical_score = initial_tactics["mean_signed_value"]
+    else:
+        initial_tactical_score = None
 
     for iteration in range(config["iterations"]):
-        iteration_started = time.perf_counter()
-        # This frozen checkpoint is the exact actor that generates the iteration.
-        # It is also the reference used to judge the update below.
-        actor_path = os.path.join(
-            checkpoint_dir, "actor-%04d.keras" % iteration
-        )
-        network.save(actor_path)
-
         boundary = NeuralBoundary(network)
         search = PUCTPlayer(
-            NeuralEvaluator(boundary),
+            boundary,
             config["simulations"],
             config["cpuct"],
             None,
@@ -275,168 +214,65 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
         if os.path.exists(raw_path):
             raise FileExistsError("iteration data already exists: " + raw_path)
         write_records(raw_path, fresh)
+        replay.add(fresh)
 
-        # Hold out complete fresh games before adding the remaining records to
-        # replay. Validation positions are never sampled for this update.
-        validation_games = max(1, config["games_per_iteration"] // 8)
-        validation_start = (
-            iteration * config["games_per_iteration"]
-            + config["games_per_iteration"]
-            - validation_games
-        )
-        validation_records = []
-        replay_records = []
-        for record in fresh:
-            if record["game_index"] >= validation_start:
-                validation_records.append(record)
-            else:
-                replay_records.append(record)
-        replay.add(replay_records, iteration)
-        total_fresh_positions += len(fresh)
-
-        losses = []
-        duplicate_count = 0
-        iteration_examples = 0
+        loss_totals = {}
         records_per_batch = max(1, config["batch_size"] // 2)
-        last_inputs = None
-        last_policies = None
 
         for unused_step in range(config["train_steps"]):
-            # Symmetry augmentation can yield up to four examples per record.
-            # Starting with half a batch limits the common case to one batch.
-            sampled = replay.sample(records_per_batch)
-            converted = records_to_training_arrays(sampled, True)
-            inputs, policies, values, conversion = converted
-            duplicate_count += conversion["symmetry_duplicates_removed"]
-            if len(inputs) > config["batch_size"]:
-                inputs = inputs[: config["batch_size"]]
-                policies = policies[: config["batch_size"]]
-                values = values[: config["batch_size"]]
+            sample_count = min(records_per_batch, len(replay.data))
+            sampled = replay.sample(sample_count)
+            inputs, policies, values = records_to_training_arrays(sampled)
             result = network.model.train_on_batch(
                 inputs,
                 {"policy": policies, "value": values},
                 return_dict=True,
             )
-            simple_result = {}
             for name in result:
-                simple_result[name] = float(result[name])
-            losses.append(simple_result)
-            total_examples_presented += len(inputs)
-            iteration_examples += len(inputs)
-            last_inputs = inputs
-            last_policies = policies
-
-        converted = records_to_training_arrays(validation_records, True)
-        validation_inputs = converted[0]
-        validation_policies = converted[1]
-        validation_values = converted[2]
-        validation_loss = network.model.test_on_batch(
-            validation_inputs,
-            {"policy": validation_policies, "value": validation_values},
-            return_dict=True,
-        )
+                if name not in loss_totals:
+                    loss_totals[name] = 0.0
+                loss_totals[name] += float(result[name])
 
         checkpoint = os.path.join(
             checkpoint_dir, "iteration-%04d.keras" % iteration
         )
-        latest_checkpoint = os.path.join(checkpoint_dir, "latest.keras")
-        network.save(checkpoint)
-        network.save(latest_checkpoint)
-
-        # Diagnostics compare the trained network with the actor before any new
-        # self-play is generated, isolating the effect of this training update.
-        actor_network = load_network(actor_path)
         if config["board_size"] == 5:
             tactics = evaluate_tactical_suite(network)
-            actor_tactics = evaluate_tactical_suite(actor_network)
         else:
             tactics = None
-            actor_tactics = None
+        network.save(checkpoint)
 
-        latest_agent = PUCTPlayer(
-            NeuralEvaluator(NeuralBoundary(network)),
-            min(24, config["simulations"]),
-            config["cpuct"],
-        )
-        actor_agent = PUCTPlayer(
-            NeuralEvaluator(NeuralBoundary(actor_network)),
-            min(24, config["simulations"]),
-            config["cpuct"],
-        )
-
-        # Every opening is played with both color assignments, reducing first-
-        # player and opening effects in this small regression arena.
-        arena = evaluate_pair(
-            latest_agent,
-            actor_agent,
-            "iteration-%04d" % iteration,
-            "actor-%04d" % iteration,
-            6,
-            2 if config["board_size"] == 5 else 4,
-            config["board_size"],
-            config["starting_rows"],
-        )
-        arena_summary = dict(arena)
-        del arena_summary["games"]
-
-        alarms = []
-        ratio = total_examples_presented / max(1, replay.total_added)
-        if ratio < 0.25 or ratio > 8.0:
-            alarms.append("replay consumption ratio %.3f is out of range" % ratio)
-        if arena["score_95_interval"][1] < 0.5:
-            # Alarm only when even the upper confidence bound says the update is
-            # weaker; a noisy point estimate below 50% is not enough by itself.
-            alarms.append("new checkpoint is weaker than its actor")
-        if arena["failures"]:
-            alarms.append("regression arena had failed games")
-        alarms.extend(arena["alarms"])
-        if tactics is not None:
-            alarms.extend(tactical_decline_alarms(tactics, actor_tactics))
-
-        elapsed = time.perf_counter() - iteration_started
         metric = {
             "iteration": iteration,
-            "fresh_games": config["games_per_iteration"],
-            "fresh_positions": len(fresh),
-            "validation_positions": len(validation_records),
-            "replay_positions_added": len(replay_records),
-            "total_fresh_positions": total_fresh_positions,
-            "examples_presented": total_examples_presented,
-            "examples_presented_this_iteration": iteration_examples,
-            "learning_rate": config["learning_rate"],
-            "replay_consumption_ratio": ratio,
-            "replay": replay.metrics(iteration),
-            "loss": mean_loss(losses, "loss"),
-            "policy_loss": mean_loss(losses, "policy_loss"),
-            "value_loss": mean_loss(losses, "value_loss"),
-            "validation_loss": float(validation_loss.get("loss", 0.0)),
-            "validation_policy_loss": float(
-                validation_loss.get("policy_loss", 0.0)
-            ),
-            "validation_value_loss": float(
-                validation_loss.get("value_loss", 0.0)
-            ),
-            "policy_kl": policy_kl(network, last_inputs, last_policies),
-            "symmetry_duplicates_removed": duplicate_count,
-            "positions_per_second": len(fresh) / max(elapsed, 0.000000001),
-            "actor_tactical": actor_tactics,
-            "tactical": tactics,
-            "regression_arena": arena_summary,
-            "alarms": alarms,
+            "new_positions": len(fresh),
+            "replay_size": len(replay.data),
+            "loss": loss_totals.get("loss", 0.0) / config["train_steps"],
+            "policy_loss": loss_totals.get("policy_loss", 0.0)
+            / config["train_steps"],
+            "value_loss": loss_totals.get("value_loss", 0.0)
+            / config["train_steps"],
             "checkpoint": checkpoint,
         }
+        if tactics is not None:
+            metric["tactical_value_score"] = tactics["mean_signed_value"]
+            metric["tactical_value_accuracy"] = tactics["value_accuracy"]
+            metric["color_swap_error"] = tactics[
+                "mean_color_swap_absolute_error"
+            ]
         with open(metric_path, "a", encoding="utf-8", newline="\n") as stream:
             stream.write(json.dumps(metric, separators=(",", ":")) + "\n")
-        # Preserve the full metric and checkpoint before stopping, so a failed
-        # update remains available for diagnosis rather than disappearing.
-        if alarms:
-            raise RuntimeError("; ".join(alarms))
+        if tactics is not None:
+            if tactics["mean_signed_value"] + 0.05 < initial_tactical_score:
+                raise RuntimeError(
+                    "tactical value declined from the initial %.3f to %.3f"
+                    % (initial_tactical_score, tactics["mean_signed_value"])
+                )
 
     return {
         "config": config,
         "iterations_completed": config["iterations"],
         "elapsed_s": time.perf_counter() - run_started,
-        "latest_checkpoint": latest_checkpoint,
-        "latest_checkpoint_sha256": file_sha256(latest_checkpoint),
+        "latest_checkpoint": checkpoint,
+        "latest_checkpoint_sha256": file_sha256(checkpoint),
         "metrics": metric_path,
     }

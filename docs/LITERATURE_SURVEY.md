@@ -21,5 +21,5 @@ If and only if the native baseline learns, the first screen will change one cohe
 4. one smaller CNN versus the 48-filter baseline;
 5. Gumbel AlphaZero only if equal-time profiling confirms that very low simulations are necessary.
 
-Replay-window size is adjusted only to keep the measured replay-consumption ratio in range; it is not treated as a nominally huge capacity. At most the best supported factors will receive a narrower native-8x8 confirmation.
+Replay-window size is a direct capacity limit on recent positions. At most the best supported factors will receive a narrower native-8x8 confirmation.
 

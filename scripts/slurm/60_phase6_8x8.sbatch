@@ -27,7 +27,7 @@ conda run -n zur_env python -m breakthrough_zero.cli learn \
   --run-dir results/phase6/learn-8x8 \
   --checkpoint checkpoints/pretrained-8x8.keras \
   --report results/phase6/learn-8x8-report.json
-LATEST8=results/phase6/learn-8x8/checkpoints/latest.keras
+LATEST8=results/phase6/learn-8x8/checkpoints/iteration-0005.keras
 conda run -n zur_env python -m breakthrough_zero.cli arena \
   --agent-a neural --a-checkpoint "$LATEST8" --a-name latest-8x8 \
   --agent-b random --b-name random \
@@ -52,7 +52,3 @@ conda run -n zur_env python -m breakthrough_zero.cli arena \
   --board-size 8 --starting-rows 2 \
   --openings 30 --prefix-plies 6 --move-seconds 0.1 \
   --output results/phase6/latest-v-pretrained.json
-conda run -n zur_env python -m breakthrough_zero.cli elo-table \
-  --reports results/phase6/latest-v-*.json \
-  --anchor random \
-  --output results/phase6/elo-table.json

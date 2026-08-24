@@ -71,15 +71,13 @@ class Breakthrough:
         return divmod(square, self.board_size)
 
     def clone(self):
-        copy = Breakthrough(
+        return Breakthrough(
             self.board_size,
             self.starting_rows,
             self.board,
             self.player_to_move,
             self.winner,
         )
-        copy.history = list(self.history)
-        return copy
 
     def legal_moves(self):
         if self.winner is not None:
@@ -124,7 +122,7 @@ class Breakthrough:
         from_square, to_square = move
         player = self.player_to_move
         captured = self.board[to_square]
-        self.history.append((move, captured, player, self.winner))
+        self.history.append((move, captured))
 
         self.board[from_square] = EMPTY
         self.board[to_square] = player
@@ -135,7 +133,7 @@ class Breakthrough:
             goal_row = 0
         to_row, unused_col = self.row_col(to_square)
 
-        if to_row == goal_row or -player not in self.board:
+        if to_row == goal_row:
             self.winner = player
             return
         # Having no legal reply is also a loss in Breakthrough. As with the other
@@ -146,21 +144,16 @@ class Breakthrough:
 
         self.player_to_move = -player
 
-    def unmake_move(self, move=None):
+    def unmake_move(self):
         if not self.history:
             raise ValueError("no move to unmake")
-        undo = self.history.pop()
-        old_move, captured, old_player, old_winner = undo
-        if move is not None and move != old_move:
-            self.history.append(undo)
-            raise ValueError("move does not match the latest move")
-
-        from_square, to_square = old_move
-        self.board[from_square] = old_player
+        move, captured = self.history.pop()
+        from_square, to_square = move
+        player = self.board[to_square]
+        self.board[from_square] = player
         self.board[to_square] = captured
-        self.player_to_move = old_player
-        self.winner = old_winner
-        return old_move
+        self.player_to_move = player
+        self.winner = None
 
     def status(self):
         return self.winner

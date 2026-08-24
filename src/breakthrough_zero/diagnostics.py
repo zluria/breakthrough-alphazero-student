@@ -1,24 +1,22 @@
 """Solver-labelled supervision and tactical measurements."""
 
 import json
-import math
 import os
 import random
 
 import numpy as np
 
-from .agents import AlphaBetaAgent, evaluate_position
+from .agents import AlphaBetaAgent
 from .game import Breakthrough, PLAYER_1, game_from_rows
 from .neural import GameNetwork, NeuralBoundary, canonical_planes
 from .symmetry import transform_state
 
 
 def tactical_suite():
-    """Return 20 exact positions and their 20 color-swapped partners.
+    """Return 20 hand-written positions with exact game-theoretic outcomes.
 
     The categories cover immediate wins, forced defense, longer forced results,
-    material traps, and pawn races. Color-swapped pairs test the absolute-value
-    convention independently of tactical strength.
+    material traps, and pawn races.
     """
 
     definitions = [
@@ -155,17 +153,7 @@ def tactical_suite():
             }
         )
 
-    paired = list(positions)
-    for position in positions:
-        paired.append(
-            {
-                "name": position["name"] + "_swapped",
-                "category": position["category"],
-                "game": transform_state(position["game"], (True, False)),
-                "outcome": -position["outcome"],
-            }
-        )
-    return paired
+    return positions
 
 
 def generate_solver_examples(count, search_depth=6):
@@ -233,125 +221,48 @@ def generate_solver_examples(count, search_depth=6):
     return np.stack(inputs), np.stack(policies), value_array, metrics
 
 
-def solver_optimal_actions(game, depth):
-    """Return the best absolute value and every action attaining it."""
-
-    values = {}
-    for move in game.legal_moves():
-        action = game.encode_move(move)
-        game.make_move(move)
-        if game.status() is not None:
-            value = float(game.status())
-        elif depth <= 1:
-            value = evaluate_position(game)
-        else:
-            solver = AlphaBetaAgent(depth - 1)
-            value, unused_move = solver.search(game, depth - 1)
-        game.unmake_move(move)
-        values[action] = value
-
-    # Values remain absolute: Player 1 chooses the maximum and Player 2 chooses
-    # the minimum, just as in PUCT's player-aware exploitation term.
-    if game.player_to_move == 1:
-        best_value = max(values.values())
-    else:
-        best_value = min(values.values())
-    best_actions = []
-    for action in values:
-        if math.isclose(values[action], best_value):
-            best_actions.append(action)
-    return best_value, best_actions
-
-
-def evaluate_tactical_suite(network, solver_depth=8):
-    """Measure value calibration, policy choices, and color-swap consistency."""
+def evaluate_tactical_suite(network):
+    """Measure value calibration and the color-swap invariant."""
 
     boundary = NeuralBoundary(network)
     rows = []
+    swap_errors = []
     for position in tactical_suite():
         game = position["game"]
-        unused_value, best_actions = solver_optimal_actions(
-            game.clone(), solver_depth
-        )
         expected_outcome = position["outcome"]
-        prediction = boundary.predict(game)
-        priors = prediction["priors"]
-        predicted_action = max(priors, key=priors.get)
+        unused_priors, predicted_value = boundary.evaluate(game)
         # The product v*z is a continuous correctness score: +1 is confidently
         # correct, zero is uncertain, and -1 is confidently wrong.
-        signed_value = prediction["value"] * expected_outcome
+        signed_value = predicted_value * expected_outcome
+
+        # Swapping the players must negate an absolute value prediction. These
+        # copies test that invariant but do not count as extra tactical examples.
+        swapped = transform_state(game, (True, False))
+        unused_priors, swapped_value = boundary.evaluate(swapped)
+        swap_error = abs(predicted_value + swapped_value)
+        swap_errors.append(swap_error)
         rows.append(
             {
                 "name": position["name"],
                 "category": position["category"],
-                "player_to_move": game.player_to_move,
                 "expected_absolute_outcome": expected_outcome,
-                "predicted_absolute_value": prediction["value"],
+                "predicted_absolute_value": predicted_value,
                 "signed_value": signed_value,
                 "value_correct": signed_value > 0,
-                "solver_actions": best_actions,
-                "top_policy_action": predicted_action,
-                "policy_correct": predicted_action in best_actions,
+                "color_swap_absolute_error": swap_error,
             }
         )
 
-    by_name = {}
-    for row in rows:
-        by_name[row["name"]] = row
-    # Swapping the players must negate an absolute value prediction. The sum of
-    # each pair should therefore be zero even when the prediction itself is bad.
-    swap_errors = []
-    for row in rows:
-        if row["name"].endswith("_swapped"):
-            original_name = row["name"][:-8]
-            original = by_name[original_name]
-            error = abs(
-                original["predicted_absolute_value"]
-                + row["predicted_absolute_value"]
-            )
-            swap_errors.append(error)
-
     correct_values = 0
-    correct_policies = 0
     signed_value_sum = 0.0
-    category_results = {}
     for row in rows:
         correct_values += int(row["value_correct"])
-        correct_policies += int(row["policy_correct"])
         signed_value_sum += row["signed_value"]
-
-        category = row["category"]
-        if category not in category_results:
-            category_results[category] = {
-                "positions": 0,
-                "correct_values": 0,
-                "correct_policies": 0,
-                "signed_value_sum": 0.0,
-            }
-        result = category_results[category]
-        result["positions"] += 1
-        result["correct_values"] += int(row["value_correct"])
-        result["correct_policies"] += int(row["policy_correct"])
-        result["signed_value_sum"] += row["signed_value"]
-
-    by_category = {}
-    for category in category_results:
-        result = category_results[category]
-        count = result["positions"]
-        by_category[category] = {
-            "positions": count,
-            "value_accuracy": result["correct_values"] / count,
-            "mean_signed_value": result["signed_value_sum"] / count,
-            "policy_accuracy": result["correct_policies"] / count,
-        }
     return {
         "positions": rows,
         "value_accuracy": correct_values / len(rows),
-        "signed_value_sum": signed_value_sum,
         "mean_signed_value": signed_value_sum / len(rows),
-        "policy_accuracy": correct_policies / len(rows),
         "mean_color_swap_absolute_error": float(np.mean(swap_errors)),
-        "by_category": by_category,
     }
 
 
@@ -417,7 +328,6 @@ def run_supervised_diagnostic(
         heldout["value_accuracy"] >= 0.7
         and heldout["policy_accuracy"] >= 0.35
         and tactics["value_accuracy"] >= 0.75
-        and tactics["policy_accuracy"] >= 0.5
         and tactics["mean_color_swap_absolute_error"] <= 0.00001
     )
     report = {

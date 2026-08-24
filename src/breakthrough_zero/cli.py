@@ -5,11 +5,11 @@ import json
 import os
 
 from .agents import AlphaBetaAgent, RandomAgent
-from .data import read_records, summarize_records
+from .data import read_records
 from .diagnostics import run_supervised_diagnostic
-from .evaluation import evaluate_pair, fit_elo_table
+from .evaluation import evaluate_pair
 from .neural import NeuralBoundary, load_network
-from .puct import NeuralEvaluator, PUCTPlayer, RolloutEvaluator
+from .puct import PUCTPlayer, RolloutEvaluator
 from .training import (
     generate_pretraining_data,
     run_learning_loop,
@@ -44,7 +44,7 @@ def build_agent(
         if network.board_size != board_size:
             raise ValueError("checkpoint board size does not match arena")
         return PUCTPlayer(
-            NeuralEvaluator(NeuralBoundary(network)),
+            NeuralBoundary(network),
             simulations,
             1.5,
             move_seconds,
@@ -112,10 +112,6 @@ def build_parser():
     arena.add_argument("--simulations", type=int, default=1000000)
     arena.add_argument("--output", required=True)
 
-    elo = commands.add_parser("elo-table")
-    elo.add_argument("--reports", nargs="+", required=True)
-    elo.add_argument("--anchor", required=True)
-    elo.add_argument("--output", required=True)
     return parser
 
 
@@ -160,7 +156,11 @@ def main(arguments=None):
         return 0
 
     if args.command == "inspect-data":
-        report = summarize_records(read_records(args.data))
+        records = read_records(args.data)
+        games = set()
+        for record in records:
+            games.add(record["game_index"])
+        report = {"positions": len(records), "games": len(games)}
         print(json.dumps(report, indent=2))
         return 0
 
@@ -193,15 +193,6 @@ def main(arguments=None):
         summary = dict(report)
         del summary["games"]
         print(json.dumps(summary, indent=2))
-        return 0
-
-    if args.command == "elo-table":
-        reports = []
-        for path in args.reports:
-            reports.append(read_json(path))
-        table = fit_elo_table(reports, args.anchor)
-        write_json(args.output, table)
-        print(json.dumps(table, indent=2))
         return 0
 
     raise AssertionError("unknown command")

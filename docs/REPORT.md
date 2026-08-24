@@ -4,7 +4,7 @@
 
 This project develops a compact AlphaZero-style engine for Breakthrough. Correctness is established in stages: a flat-list rules implementation is checked against an independent move generator; alpha-beta is checked against brute force; a two-plane mover-relative CNN is isolated behind one absolute-value conversion boundary; PUCT is tested with an assignment-prescribed dummy evaluator before being connected to the CNN. Training uses root visit counts for the policy target and final outcomes for the value target. The final study compares agents under random, color-paired opening prefixes and equal wall-clock move budgets.
 
-The final numerical summary is inserted only from completed JSON and Slurm artifacts. The current suite discovers 37 tests: 35 pass and two Keras tests skip locally, while all 37 pass in the TensorFlow HPC environment, including Keras save/load and separate native 5x5/8x8 network shapes. Before the language-level rewrite, the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy on the original suite, 100% tactical policy accuracy, and exact player-swap consistency. The assignment's dummy-PUCT stage completed 10,000 games and 121,565 reconstructable positions with exactly 100 mean root visits. Neural pretraining on a whole-game split finished with validation policy/value losses of 2.233/0.746. The current 20-base-position tactical suite gives that checkpoint a mean signed value of 0.6876, 95% sign accuracy, 100% policy accuracy, and zero swap error. Slurm job 33985 passed the current TensorFlow regression gate and calibrated the expanded tactical measure on the historical checkpoints.
+The final numerical summary is inserted only from completed JSON and Slurm artifacts. The rules, search, replay, tactical, perspective, and network save/load invariants are covered by the test suite. Before the current architecture cleanup, the revised solver-supervised diagnostic reached 90.2% held-out value accuracy and 60.0% held-out policy accuracy. The assignment's dummy-PUCT stage completed 10,000 games and 121,565 reconstructable positions. Neural pretraining on a whole-game split finished with validation policy/value losses of 2.233/0.746. The 20-base-position tactical suite gives that historical checkpoint a mean signed value of 0.6876, 95% sign accuracy, and zero swap error.
 
 ## 1. Assignment and scope
 
@@ -16,7 +16,7 @@ The implementation begins with a native 5x5, one-row diagnostic game and later t
 
 The board is an ordinary row-major Python list. Player 1 starts at the top and advances toward the last row; Player 2 starts at the bottom and advances toward row zero. A pawn may step straight forward into an empty square, step diagonally forward into an empty square, or capture an opponent by a diagonal step. Reaching the opposite edge wins. A player unable to reply loses.
 
-Moves are two-item tuples of compact square indices. `make_move` appends one tuple containing the move, captured piece, previous player, and previous winner. `unmake_move` restores those fields directly. A terminal move leaves `player_to_move` equal to the mover, so terminal state reporting does not begin a reply turn.
+Moves are two-item tuples of compact square indices. `make_move` saves only the move and captured piece. The pawn on the destination square identifies the mover during `unmake_move`; a legal move always begins from a nonterminal state, so the restored winner is `None`. A terminal move leaves `player_to_move` equal to the mover, so terminal state reporting does not begin a reply turn.
 
 The public API contains the assignment names: `make_move`, `unmake_move`, `clone`, `encode`, `decode`, `status`, `outcome`, and `legal_moves`.
 
@@ -35,13 +35,13 @@ All tree values, replay outcomes, arena scores, and reports outside that boundar
 
 ## 4. Trusted baselines
 
-The random agent samples a legal move. The tactical rollout agent checks immediate wins, then captures, then falls back to a random choice. Alpha-beta uses a short, explicit evaluation combining material, forward progress, and mobility. It maximizes the one absolute score for Player 1 and minimizes it for Player 2.
+The random agent and rollout evaluator sample legal moves. Alpha-beta uses an evaluation combining material, forward progress, and mobility. It maximizes the one absolute score for Player 1 and minimizes it for Player 2. Without a time limit it searches the requested depth once; with a time limit it uses iterative deepening until timeout.
 
 The rule gate compares legal moves with a separately written coordinate generator across full random games. Other checks cover captures, illegal straight captures, terminal goal moves, no-legal-reply outcomes, exact restoration, symmetry algebra, policy action round trips, and alpha-beta agreement with brute-force solving on tractable positions.
 
 ## 5. PUCT with absolute values
 
-Each `PUCTNode` stores a prior, a visit count, an absolute value sum, and children. Its mean `Q` is the absolute value sum divided by visits. Unvisited children use their parent's `Q` as first-play urgency.
+Each `PUCTNode` stores a prior, a parent, a visit count, an absolute mean `Q`, and children. A new child inherits its parent's current `Q` as first-play urgency. Backup follows parent pointers and updates the running mean directly.
 
 The handout's exploration term is retained:
 
@@ -55,35 +55,34 @@ Because `Q` is absolute rather than mover-relative, selection maximizes:
 parent_player * Q(s,a) + U(s,a)
 ```
 
-Here `parent_player` is the player choosing the edge at the parent state. Player 1 therefore prefers larger absolute `Q`, while Player 2 prefers smaller absolute `Q`. Backup adds the same absolute outcome to every node on the path and never flips a sign.
+Here `parent_player` is the player choosing the edge at the parent state. Player 1 therefore prefers larger absolute `Q`, while Player 2 prefers smaller absolute `Q`. Backup applies the same absolute outcome at every ancestor and never flips a sign.
 
 The assignment's dummy evaluator gives every legal action a uniform prior and obtains an absolute value from a random rollout. It is used to generate the mandatory pretraining records before any neural PUCT self-play.
 
 ## 6. Data and training
 
-Every raw position is a dictionary preserving the absolute board, mover, legal relative actions, visit counts, priors, root value, root visits, requested and completed search effort, elapsed search time, played action, and final absolute outcome. Alternative policy temperatures, symmetry choices, and value targets can therefore be reconstructed later.
+Every raw position is a dictionary preserving the game number, board size, starting rows, absolute board, mover, legal relative actions, visit counts, and final absolute outcome. These are exactly the fields required to reconstruct neural inputs and targets. Extra fields in the existing 10,000-game corpus are ignored.
 
-The four exact game transformations combine player swap with left-right reflection. Player swap can create a neural tensor identical to the original canonical tensor; exact per-position hashing removes that duplicate so it is not accidentally overweighted.
+The mover-relative representation makes player-swap augmentation duplicate the original neural example. Training therefore uses only the original position and its left-right reflection. Player swapping remains in the tests for the perspective and value-sign invariant.
 
 The learned loop is synchronous:
 
 ```text
 PLAY a bounded tranche with the latest checkpoint
--> reserve complete games for validation
--> add the remaining raw positions to bounded replay
+-> add every raw position to bounded replay
 -> TRAIN for a bounded number of batches
--> save model weights and optimizer state
--> compare the new checkpoint with its actor
+-> measure the 20-position tactical value score
+-> save the checkpoint and compact metrics
 -> use the new checkpoint for the next tranche
 ```
 
-There is no candidate acceptance gate. A paired mini-arena is an alarm: if its uncertainty interval demonstrates regression, training stops with the evidence saved.
+There is no candidate acceptance gate. On 5x5, each iteration's tactical mean is compared directly with the initial pretrained mean, so several small degradations cannot evade the check. The standalone arena is reserved for post-training evaluation.
 
-Iteration metrics include fresh games and positions, validation and replay positions, replay capacity and age, examples presented, replay consumption, training and validation losses for both heads, policy KL, throughput, tactical accuracy, player-swap consistency, a regression arena, and alarms.
+Iteration metrics contain the iteration, new-position count, replay size, training losses, tactical value score and sign accuracy, color-swap error, and checkpoint path.
 
 ## 7. Evaluation protocol
 
-Rated search does not use Dirichlet noise. Seeded random legal prefixes create distinct openings. Every prefix is played twice with agent colors exchanged. Algorithms of different kinds receive the same wall-clock move budget. Reports retain every move sequence and record failures, score, Wilson score interval, pairwise Elo difference, Elo interval, mean game time, duplicate-game fraction, and alarms. A connected Bradley-Terry fit produces an anchored Elo table with approximate uncertainty.
+Rated search does not use Dirichlet noise. Random legal prefixes create distinct openings. Every prefix is played twice with agent colors exchanged. Algorithms of different kinds receive the same wall-clock move budget. Reports retain every move sequence and record failures, score, Wilson score interval, and mean game time.
 
 The required agent set is random, alpha-beta, rollout PUCT, pretrained neural PUCT, the first learned checkpoint, and the latest learned checkpoint. Native 8x8 agents are rated separately.
 
@@ -99,7 +98,7 @@ The required 5x5 dummy-PUCT corpus completed in Slurm job 33970: 10,000 games, 1
 
 Neural pretraining completed in Slurm job 33972 using 9,000 training games and 1,000 validation games. Final validation policy/value losses were 2.2332/0.7462; tactical value-sign accuracy was 83.3%, policy accuracy 100%, and player-swap error exactly zero. The value head remained pessimistic on the unique-defense example despite selecting its correct action, so later self-play metrics continue to track that weakness. Learned 5x5 checkpoints, paired arenas, native 8x8 transfer, and the two-factor research screen remain gated on their own completed artifacts; placeholders are not reported as measurements.
 
-The first synchronous-learning attempt was stopped after iteration 0. Although its paired regression arena scored 9/12 with no failures and color-swap error remained zero, tactical value-sign accuracy fell from 83.3% to 66.7%. The early inspection also revealed that the alarm compared only successive learned checkpoints and therefore omitted the pretrained-to-iteration-0 transition. The correction compares each new checkpoint directly with its actor for both tactical heads, adds a reproducing unit test, and reduces training batches per tranche from 32 to 8 to lower first-tranche replay consumption from about 3.14 to 0.79. The failed weights are quarantined and are not presented as agents.
+The first synchronous-learning attempt was stopped after iteration 0 when tactical value-sign accuracy fell from 83.3% to 66.7%. That debugging period motivated extensive actor snapshots, per-iteration arenas, replay telemetry, and policy alarms. The final loop removes that machinery. Its one retention check compares the continuous 20-position tactical mean directly with the initial pretrained mean, preventing a sequence of small declines from escaping comparison with the starting model.
 
 ## 10. Planned limited extensions
 

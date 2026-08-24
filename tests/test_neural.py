@@ -64,8 +64,10 @@ class NeuralBoundaryTests(unittest.TestCase):
         network = RecordingNetwork(self.game.action_size, 0.35)
         boundary = NeuralBoundary(network)
         swapped = transform_state(self.game, (True, False))
-        self.assertAlmostEqual(boundary.predict(self.game)["value"], 0.35)
-        self.assertAlmostEqual(boundary.predict(swapped)["value"], -0.35)
+        unused_priors, first_value = boundary.evaluate(self.game)
+        unused_priors, second_value = boundary.evaluate(swapped)
+        self.assertAlmostEqual(first_value, 0.35)
+        self.assertAlmostEqual(second_value, -0.35)
 
     def test_all_absolute_targets_convert_relative(self):
         boundary = NeuralBoundary()
@@ -126,6 +128,10 @@ class NeuralBoundaryTests(unittest.TestCase):
         self.assertEqual(standard.model.input_shape, (None, 8, 8, 2))
         self.assertEqual(small.model.output["policy"].shape[-1], 75)
         self.assertEqual(standard.model.output["policy"].shape[-1], 192)
+        self.assertEqual(small.model.get_layer("policy").__class__.__name__, "Flatten")
+        for layer in small.model.layers:
+            if layer.__class__.__name__ == "Conv2D":
+                self.assertTrue(layer.use_bias)
 
 
 if __name__ == "__main__":

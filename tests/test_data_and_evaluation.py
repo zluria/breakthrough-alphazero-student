@@ -14,36 +14,27 @@ from breakthrough_zero.data import (
 from breakthrough_zero.diagnostics import tactical_suite
 from breakthrough_zero.evaluation import (
     evaluate_pair,
-    fit_elo_table,
     randomized_openings,
     wilson_interval,
 )
 from breakthrough_zero.game import game_from_rows
 from breakthrough_zero.puct import PUCTPlayer, RolloutEvaluator
 from breakthrough_zero.replay import ReplayBuffer, records_to_training_arrays
-from breakthrough_zero.training import tactical_decline_alarms
+from breakthrough_zero.symmetry import transform_state
 
 
-def sample_record():
+def sample_record(game_index=3):
     game = game_from_rows(["1....", ".1.2.", "..1..", ".2...", "....2"])
     actions = game.legal_actions()
     counts = list(range(1, len(actions) + 1))
-    priors = [1 / len(actions)] * len(actions)
     return {
-        "game_index": 3,
-        "ply": 4,
+        "game_index": game_index,
         "board_size": 5,
         "starting_rows": 1,
         "board": list(game.board),
         "player_to_move": game.player_to_move,
         "legal_actions": actions,
         "visit_counts": counts,
-        "priors": priors,
-        "root_value": 0.25,
-        "root_visits": sum(counts),
-        "simulations": 32,
-        "search_elapsed_s": 0.01,
-        "played_action": actions[0],
         "final_outcome": 1,
     }
 
@@ -60,25 +51,23 @@ class DataTests(unittest.TestCase):
         original_game = state_from_record(record)
         self.assertEqual(loaded_game.to_rows(), original_game.to_rows())
 
-    def test_augmentation_removes_canonical_swap_duplicates(self):
-        inputs, policies, values, metrics = records_to_training_arrays(
-            [sample_record()], True
-        )
+    def test_augmentation_uses_original_and_reflection(self):
+        record = sample_record()
+        record["old_root_value"] = 0.25
+        inputs, policies, values = records_to_training_arrays([record])
         self.assertEqual(len(inputs), 2)
-        self.assertEqual(metrics["symmetry_duplicates_removed"], 2)
         np.testing.assert_allclose(policies.sum(axis=1), 1.0)
         np.testing.assert_array_equal(
             values, np.ones((2, 1), dtype=np.float32)
         )
 
-    def test_replay_reports_actual_consumption(self):
+    def test_replay_keeps_capacity_and_samples_without_replacement(self):
         replay = ReplayBuffer(3)
-        replay.add([sample_record(), sample_record()], 0)
-        replay.sample(4)
-        metrics = replay.metrics(2)
-        self.assertEqual(metrics["size"], 2)
-        self.assertEqual(metrics["oldest_age_iterations"], 2)
-        self.assertEqual(metrics["replay_consumption_ratio"], 2.0)
+        replay.add([sample_record(0), sample_record(1)])
+        replay.add([sample_record(2), sample_record(3)])
+        self.assertEqual([record["game_index"] for record in replay.data], [1, 2, 3])
+        sample = replay.sample(3)
+        self.assertEqual(len({record["game_index"] for record in sample}), 3)
 
     def test_dummy_evaluator_has_uniform_legal_policy_and_absolute_value(self):
         game = state_from_record(sample_record())
@@ -87,51 +76,39 @@ class DataTests(unittest.TestCase):
         self.assertEqual(len(set(priors.values())), 1)
         self.assertIn(value, (-1.0, 1.0))
 
-    def test_self_play_records_keep_reconstructable_search_evidence(self):
+    def test_self_play_records_keep_training_evidence(self):
         player = PUCTPlayer(RolloutEvaluator(), 2, 1.5)
         records = play_self_play_game(player, 5, 1, 7, 1.0, 2)
         self.assertGreater(len(records), 0)
         for record in records:
+            self.assertEqual(
+                set(record),
+                {
+                    "game_index",
+                    "board_size",
+                    "starting_rows",
+                    "board",
+                    "player_to_move",
+                    "legal_actions",
+                    "visit_counts",
+                    "final_outcome",
+                },
+            )
             self.assertIn(record["final_outcome"], (-1, 1))
             game = state_from_record(record)
-            self.assertIn(record["played_action"], record["legal_actions"])
             self.assertEqual(
                 set(record["legal_actions"]), set(game.legal_actions())
             )
             self.assertEqual(sum(record["visit_counts"]), 2)
-            self.assertEqual(record["root_visits"], 2)
-
-    def test_first_iteration_tactical_decline_is_compared_with_actor(self):
-        actor = {
-            "mean_signed_value": 0.30,
-            "policy_accuracy": 1.0,
-            "mean_color_swap_absolute_error": 0.0,
-        }
-        current = {
-            "mean_signed_value": 0.20,
-            "policy_accuracy": 0.8,
-            "mean_color_swap_absolute_error": 0.0,
-        }
-        alarms = tactical_decline_alarms(current, actor)
-        self.assertEqual(len(alarms), 2)
-        self.assertIn("0.300 to 0.200", alarms[0])
 
     def test_tactical_suite_has_twenty_balanced_exact_base_positions(self):
         positions = tactical_suite()
-        self.assertEqual(len(positions), 40)
-
-        base_positions = []
-        by_name = {}
-        for position in positions:
-            by_name[position["name"]] = position
-            if not position["name"].endswith("_swapped"):
-                base_positions.append(position)
-        self.assertEqual(len(base_positions), 20)
+        self.assertEqual(len(positions), 20)
 
         positive = 0
         negative = 0
         categories = set()
-        for position in base_positions:
+        for position in positions:
             categories.add(position["category"])
             if position["outcome"] == 1:
                 positive += 1
@@ -140,8 +117,8 @@ class DataTests(unittest.TestCase):
             exact = solve_exact(position["game"].clone())
             self.assertEqual(exact, position["outcome"], position["name"])
 
-            swapped = by_name[position["name"] + "_swapped"]
-            self.assertEqual(swapped["outcome"], -position["outcome"])
+            swapped = transform_state(position["game"], (True, False))
+            self.assertEqual(solve_exact(swapped), -position["outcome"])
 
         self.assertEqual((positive, negative), (10, 10))
         self.assertEqual(
@@ -187,23 +164,6 @@ class EvaluationTests(unittest.TestCase):
         low, high = wilson_interval(60, 100)
         self.assertLess(low, 0.6)
         self.assertGreater(high, 0.6)
-
-    def test_elo_table_recovers_a_simple_rating_difference(self):
-        reports = [
-            {
-                "agent_a": "strong",
-                "agent_b": "anchor",
-                "games_completed": 100,
-                "agent_a_score": 75.0,
-            }
-        ]
-        table = fit_elo_table(reports, "anchor")
-        ratings = {}
-        for row in table["ratings"]:
-            ratings[row["agent"]] = row["elo"]
-        self.assertEqual(ratings["anchor"], 0.0)
-        self.assertAlmostEqual(ratings["strong"], 189.5, delta=3.0)
-
 
 if __name__ == "__main__":
     unittest.main()

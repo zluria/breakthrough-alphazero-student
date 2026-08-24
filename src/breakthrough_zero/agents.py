@@ -15,44 +15,12 @@ class RandomAgent:
         return random.choice(moves)
 
 
-class TacticalRolloutAgent:
-    """Choose a win, then a capture, then a random legal move."""
-
-    def choose_move(self, game):
-        moves = game.legal_moves()
-        if not moves:
-            raise ValueError("position has no legal move")
-
-        captures = []
-        for move in moves:
-            to_square = move[1]
-            is_capture = game.board[to_square] == -game.player_to_move
-            game.make_move(move)
-            won = game.status() is not None
-            game.unmake_move(move)
-            if won:
-                return move
-            if is_capture:
-                captures.append(move)
-
-        if captures:
-            return random.choice(captures)
-        return random.choice(moves)
-
-
-def rollout_outcome(game, tactical=False):
+def rollout_outcome(game):
     """Play to the end and return 1 for Player 1 or -1 for Player 2."""
 
     state = game.clone()
-    tactical_agent = None
-    if tactical:
-        tactical_agent = TacticalRolloutAgent()
-
     while state.status() is None:
-        if tactical_agent is None:
-            move = random.choice(state.legal_moves())
-        else:
-            move = tactical_agent.choose_move(state)
+        move = random.choice(state.legal_moves())
         state.make_move(move)
     return state.status()
 
@@ -80,19 +48,21 @@ class AlphaBetaAgent:
         self.stats = {"nodes": 0, "completed_depth": 0}
         if self.time_limit_s is None:
             self.deadline = math.inf
-            maximum_depth = self.depth
-        else:
-            self.deadline = time.perf_counter() + self.time_limit_s
-            maximum_depth = 100
+            unused_value, move = self.search(game, self.depth)
+            self.stats["completed_depth"] = self.depth
+            return move
 
+        self.deadline = time.perf_counter() + self.time_limit_s
         best_move = moves[0]
-        for depth in range(1, maximum_depth + 1):
+        depth = 1
+        while True:
             try:
-                value, move = self.search(game, depth)
+                unused_value, move = self.search(game, depth)
             except TimeoutError:
                 break
             best_move = move
             self.stats["completed_depth"] = depth
+            depth += 1
         return best_move
 
     def search(self, game, depth=None):
@@ -127,7 +97,7 @@ class AlphaBetaAgent:
                         game, depth - 1, alpha, beta
                     )
                 finally:
-                    game.unmake_move(move)
+                    game.unmake_move()
                 if value > best_value:
                     best_value = value
                     best_move = move
@@ -146,7 +116,7 @@ class AlphaBetaAgent:
                         game, depth - 1, alpha, beta
                     )
                 finally:
-                    game.unmake_move(move)
+                    game.unmake_move()
                 if value < best_value:
                     best_value = value
                     best_move = move
@@ -171,8 +141,7 @@ def ordered_moves(game):
         to_row, unused_col = game.row_col(move[1])
         wins = int(to_row == goal_row)
         captures = int(game.board[move[1]] == -player)
-        stable_number = move[0] * game.board_size * game.board_size + move[1]
-        return (-wins, -captures, stable_number)
+        return (-wins, -captures)
 
     return sorted(game.legal_moves(), key=order_key)
 
@@ -226,7 +195,7 @@ def solve_exact(game, cache=None):
     for move in game.legal_moves():
         game.make_move(move)
         result = solve_exact(game, cache)
-        game.unmake_move(move)
+        game.unmake_move()
         if result == desired_result:
             cache[key] = desired_result
             return desired_result

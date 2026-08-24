@@ -6,8 +6,9 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 
 | Gate | Board | Result | Evidence |
 |---|---:|---|---|
-| Rules/search/data/evaluation/style tests | 5x5 and 8x8 | 37/37 pass on HPC; 35 pass and 2 Keras tests skip locally | Slurm jobs 33976 and 33985 |
-| Keras save/load | 5x5 | Pass after simplicity rewrite | Slurm job 33976, TensorFlow 2.14 on RTX 2080 SUPER |
+| Pre-cleanup regression suite | 5x5 and 8x8 | 37/37 pass on HPC; 35 pass and 2 Keras tests skip locally | Slurm jobs 33976 and 33985 |
+| Current simplification patch | 5x5 and 8x8 | 31 available tests pass locally; 2 Keras tests skip pending HPC verification | Local test run, 2026-08-24 |
+| Historical Keras save/load | 5x5 | Pass before the current architecture cleanup | Slurm job 33976, TensorFlow 2.14 on RTX 2080 SUPER |
 | Dummy-MCTS data smoke | 5x5 | 2 games, 49 positions, 4 visits/root | Slurm job 33967 |
 | Solver-supervised diagnostic, attempt 1 | 5x5 | Rejected: memorized training data, 0.0 tactical value accuracy | Slurm job 33968 |
 | Solver-supervised diagnostic, revised | 5x5 | Pass: held-out value 90.2%, policy 60.0%; tactical value 83.3%, policy 100%; swap error 0 | Slurm job 33969 |
@@ -23,10 +24,10 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 
 ## Playing strength
 
-| Agent A | Agent B | Board | Move budget | Games | Score | Elo difference (95% interval) |
-|---|---|---:|---:|---:|---:|---:|
-| Pending | Pending | 5x5 | 0.1 s | - | - | - |
+| Agent A | Agent B | Board | Move budget | Games | Score (95% interval) |
+|---|---|---:|---:|---:|---:|
+| Pending | Pending | 5x5 | 0.1 s | - | - |
 
 ## Training progress
 
-Iteration-level fresh positions, replay ages, examples presented, replay consumption, losses, policy KL, throughput, tactical accuracy, color-swap consistency, and alarms are written to `results/phase4/learn-5x5/metrics.jsonl`.
+Iteration metrics record new positions, replay size, policy/value losses, the 20-position tactical value score, sign accuracy, color-swap error, and checkpoint path.

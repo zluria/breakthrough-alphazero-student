@@ -35,16 +35,12 @@ conda run -n zur_env python -m breakthrough_zero.cli learn \
   --checkpoint checkpoints/pretrained-small-5x5.keras \
   --report results/phase7/small-report.json
 conda run -n zur_env python -m breakthrough_zero.cli arena \
-  --agent-a neural --a-checkpoint results/phase7/baseline/checkpoints/latest.keras --a-name baseline \
-  --agent-b neural --b-checkpoint results/phase7/no-noise/checkpoints/latest.keras --b-name no-noise \
+  --agent-a neural --a-checkpoint results/phase7/baseline/checkpoints/iteration-0004.keras --a-name baseline \
+  --agent-b neural --b-checkpoint results/phase7/no-noise/checkpoints/iteration-0004.keras --b-name no-noise \
   --board-size 5 --starting-rows 1 --openings 50 --prefix-plies 4 --move-seconds 0.1 \
   --output results/phase7/baseline-v-no-noise.json
 conda run -n zur_env python -m breakthrough_zero.cli arena \
-  --agent-a neural --a-checkpoint results/phase7/baseline/checkpoints/latest.keras --a-name baseline \
-  --agent-b neural --b-checkpoint results/phase7/small/checkpoints/latest.keras --b-name small \
+  --agent-a neural --a-checkpoint results/phase7/baseline/checkpoints/iteration-0004.keras --a-name baseline \
+  --agent-b neural --b-checkpoint results/phase7/small/checkpoints/iteration-0004.keras --b-name small \
   --board-size 5 --starting-rows 1 --openings 50 --prefix-plies 4 --move-seconds 0.1 \
   --output results/phase7/baseline-v-small.json
-conda run -n zur_env python -m breakthrough_zero.cli elo-table \
-  --reports results/phase7/baseline-v-*.json \
-  --anchor baseline \
-  --output results/phase7/elo-table.json

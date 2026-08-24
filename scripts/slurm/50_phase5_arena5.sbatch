@@ -13,7 +13,7 @@ PROJECT_DIR="$(pwd)"
 export PYTHONPATH="$PROJECT_DIR/src"
 
 mkdir -p results/slurm results/phase5
-LATEST=results/phase4/learn-5x5/checkpoints/latest.keras
+LATEST=results/phase4/learn-5x5/checkpoints/iteration-0019.keras
 PRETRAINED=checkpoints/pretrained-5x5.keras
 FIRST=results/phase4/learn-5x5/checkpoints/iteration-0000.keras
 conda run -n zur_env python -m breakthrough_zero.cli arena \
@@ -52,7 +52,3 @@ conda run -n zur_env python -m breakthrough_zero.cli arena \
   --board-size 5 --starting-rows 1 \
   --openings 50 --prefix-plies 4 --move-seconds 0.1 \
   --output results/phase5/latest-v-iteration0000.json
-conda run -n zur_env python -m breakthrough_zero.cli elo-table \
-  --reports results/phase5/*-v-*.json \
-  --anchor random \
-  --output results/phase5/elo-table.json

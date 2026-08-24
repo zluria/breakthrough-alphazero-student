@@ -8,10 +8,10 @@ This is a clean-room implementation derived from the supplied course handouts an
 
 ## Program structure
 
-The implementation uses lists, tuples, dictionaries, loops, functions, simple classes, NumPy, and Keras. It does not use type annotations, `from __future__`, dataclasses, protocols, properties, decorators, or callable and factory machinery.
+The implementation uses lists, tuples, dictionaries, loops, functions, classes, NumPy, and Keras.
 
 - A move is a two-item tuple: `(from_square, to_square)`.
-- An undo-history entry is a tuple containing the move and the old fields.
+- An undo-history entry is the tuple `(move, captured_piece)`.
 - A self-play position, search result, metric, and report is a dictionary.
 - A symmetry is the tuple `(swap_players, reflect_left_right)` and is applied by functions.
 - Classes are reserved for the game, agents, neural network, replay buffer, and PUCT node/player, where mutable state is genuinely useful.
@@ -39,14 +39,14 @@ If you change the encoding or value convention, start with `tests/test_neural.py
 ## Code map
 
 - `game.py` - flat-list board, tuple moves, tuple undo history, legal moves, terminal rules, action mapping.
-- `agents.py` - random, tactical rollout, brute-force solver, alpha-beta.
+- `agents.py` - random rollout, brute-force solver, and alpha-beta.
 - `neural.py` - two-plane canonicalization, the perspective boundary, native Keras CNN.
-- `puct.py` - dummy rollout evaluator, neural evaluator, PUCT tree search.
-- `data.py` - plain-dictionary gzip JSONL records with boards, counts, priors, root statistics, actions, and outcomes.
-- `replay.py` - a bounded list and four tuple-defined symmetries with duplicate tensors removed.
-- `diagnostics.py` - balanced alpha-beta supervision and color-paired tactical checks.
+- `puct.py` - rollout evaluator and PUCT tree search.
+- `data.py` - gzip JSONL records with boards, visit counts, and outcomes.
+- `replay.py` - a bounded list with left-right reflection augmentation.
+- `diagnostics.py` - balanced alpha-beta supervision and exact tactical value checks.
 - `training.py` - assignment pretraining and synchronous `PLAY -> REPLAY -> TRAIN` iterations.
-- `evaluation.py` - randomized opening prefixes, color pairing, Elo differences, intervals, and alarms.
+- `evaluation.py` - randomized opening prefixes, color pairing, scores, and intervals.
 - `cli.py` - commands used by the Slurm scripts.
 
 ## Setup and tests
@@ -60,7 +60,7 @@ pytest
 
 The tests independently regenerate legal moves, verify exact make/unmake restoration, exhaust action round trips, check symmetry algebra, compare alpha-beta with brute force, verify 20 balanced tactical outcomes by exact solving, test neural perspective conversions, and lock down absolute-value PUCT behavior.
 
-The tactical report evaluates those 20 base positions and their 20 color-swapped partners. Sign accuracy is a secondary summary; retention alarms use the continuous mean of `predicted absolute value * exact absolute outcome`. Policy accuracy, category breakdowns, and exact color-swap consistency are reported separately.
+The tactical report scores the 20 base positions with the continuous mean of `predicted absolute value * exact absolute outcome`. Sign accuracy is a secondary summary. Color-swapped copies test the perspective invariant without counting as additional tactical observations.
 
 ## Training workflow
 
@@ -84,7 +84,7 @@ breakthrough-zero pretrain-network \
   --report results/phase4/pretraining-network-report.json
 ```
 
-Continue with the ungated synchronous loop. The latest saved checkpoint always becomes the next actor; arenas diagnose progress but never accept or reject candidates.
+Continue with the synchronous loop. Each trained checkpoint produces the next iteration's self-play. A direct comparison with the initial pretrained tactical score stops a clear value regression; there is no candidate-promotion arena inside training.
 
 ```bash
 breakthrough-zero learn \
@@ -94,7 +94,7 @@ breakthrough-zero learn \
   --report results/phase4/learn-5x5-report.json
 ```
 
-Raw records preserve the position, player, legal relative actions, visit counts, priors, root value and visit total, search effort and time, played action, and final absolute outcome. This is enough to rebuild alternative policy temperatures, value targets, and symmetry schemes.
+Raw records preserve the position, player, legal relative actions, visit counts, and final absolute outcome. That is enough to reconstruct the policy and value targets.
 
 ## Fair evaluation
 
@@ -102,13 +102,13 @@ Rated search has no Dirichlet noise. Each random opening prefix is played twice 
 
 ```bash
 breakthrough-zero arena \
-  --agent-a neural --a-checkpoint results/phase4/learn-5x5/checkpoints/latest.keras \
+  --agent-a neural --a-checkpoint results/phase4/learn-5x5/checkpoints/iteration-0019.keras \
   --agent-b alphabeta \
   --openings 50 --prefix-plies 4 --move-seconds 0.1 \
   --output results/phase5/neural-v-alphabeta.json
 ```
 
-Reports include game counts, failures, scores, Elo differences, 95% intervals, duplicate-game rates, timings, and automatic alarms.
+Reports include game counts, failures, scores, 95% Wilson intervals, timings, and the complete games.
 
 ## HPC workflow
 
@@ -128,7 +128,7 @@ For every submitted job, record the Git commit, command, configuration, inputs, 
 
 - `ASSIGNMENT_REQUIREMENTS.md` is the formal compliance checklist and conflict record.
 - `PHASE_LOG.md` records phase gates and reproducibility metadata.
-- `RESULTS.md` is the human-readable Elo and diagnostic summary.
+- `RESULTS.md` is the human-readable evaluation and diagnostic summary.
 - `RESEARCH_CONCLUSIONS.md` contains only lessons supported by completed experiments.
 - `docs/REPORT.md` and `docs/TEACHERS_TIPS.md` are the sources for the final PDFs.
 - `docs/LITERATURE_SURVEY.md` records mechanisms, evidence, complexity, and adopt/test/reject decisions for post-AlphaZero techniques.

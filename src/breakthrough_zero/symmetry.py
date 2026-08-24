@@ -5,8 +5,6 @@ rotates the board by 180 degrees and negates every pawn; a Player-1 win therefor
 becomes a Player-2 win. Left-right reflection does not change the winner.
 """
 
-import numpy as np
-
 from .game import Breakthrough
 
 
@@ -66,20 +64,3 @@ def transform_action(game, action, symmetry):
     new_game = transform_state(game, symmetry)
     new_move = transform_move(move, game.board_size, symmetry)
     return new_game.encode_move(new_move)
-
-
-def transform_policy(game, policy, symmetry):
-    if policy.shape != (game.action_size,):
-        raise ValueError("policy has the wrong shape")
-    new_policy = np.zeros_like(policy)
-    for action in range(len(policy)):
-        probability = policy[action]
-        try:
-            new_action = transform_action(game, action, symmetry)
-            new_policy[new_action] = probability
-        except ValueError:
-            # Some policy-head cells point off the board. They are never legal,
-            # so a valid target must assign them zero probability.
-            if probability != 0:
-                raise
-    return new_policy

@@ -62,18 +62,22 @@ class NeuralBoundary:
     def relative_target(self, absolute_value, player_to_move):
         return float(absolute_value) * player_to_move
 
-    def predict(self, game):
+    def evaluate(self, game):
         logits, relative_value = self.network.predict_raw(canonical_planes(game))
         logits = np.array(logits).reshape(-1)
         if logits.shape != (game.action_size,):
             raise ValueError("network returned the wrong policy shape")
 
-        probabilities = masked_softmax(logits, game.legal_action_mask())
+        actions = game.legal_actions()
+        legal_mask = np.zeros(game.action_size, dtype=np.bool_)
+        for action in actions:
+            legal_mask[action] = True
+        probabilities = masked_softmax(logits, legal_mask)
         priors = {}
-        for action in game.legal_actions():
+        for action in actions:
             priors[action] = float(probabilities[action])
         value = self.absolute_value(relative_value, game.player_to_move)
-        return {"priors": priors, "value": value}
+        return priors, value
 
 
 class GameNetwork:
@@ -90,7 +94,6 @@ class GameNetwork:
         filters=48,
         residual_blocks=3,
         learning_rate=0.001,
-        l2_strength=0.0001,
         model=None,
     ):
         self.board_size = board_size
@@ -98,7 +101,6 @@ class GameNetwork:
         self.filters = filters
         self.residual_blocks = residual_blocks
         self.learning_rate = learning_rate
-        self.l2_strength = l2_strength
         if model is None:
             self.model = self.build_model()
         else:
@@ -106,8 +108,6 @@ class GameNetwork:
 
     def build_model(self):
         import keras
-
-        regularizer = keras.regularizers.l2(self.l2_strength)
 
         inputs = keras.Input(
             shape=(self.board_size, self.board_size, 2),
@@ -117,8 +117,6 @@ class GameNetwork:
             self.filters,
             3,
             padding="same",
-            use_bias=False,
-            kernel_regularizer=regularizer,
         )(inputs)
         x = keras.layers.Activation("relu")(x)
 
@@ -130,29 +128,20 @@ class GameNetwork:
                 self.filters,
                 3,
                 padding="same",
-                use_bias=False,
-                kernel_regularizer=regularizer,
             )(x)
             x = keras.layers.Activation("relu")(x)
             x = keras.layers.Conv2D(
                 self.filters,
                 3,
                 padding="same",
-                use_bias=False,
-                kernel_regularizer=regularizer,
             )(x)
             x = keras.layers.Add()([x, old_x])
             x = keras.layers.Activation("relu")(x)
 
-        # The policy head produces unnormalized action logits. MCTS converts the
-        # legal ones to priors when evaluating a particular position.
-        policy = keras.layers.Conv2D(3, 1, activation="relu")(x)
-        policy = keras.layers.Flatten()(policy)
-        policy = keras.layers.Dense(
-            self.action_size,
-            name="policy",
-            kernel_regularizer=regularizer,
-        )(policy)
+        # There are exactly three actions per square, so these three channels are
+        # already the complete vector of unnormalized policy logits.
+        policy = keras.layers.Conv2D(3, 1)(x)
+        policy = keras.layers.Flatten(name="policy")(policy)
 
         # The value head predicts the final result from the mover's viewpoint;
         # tanh keeps the prediction in the same [-1, 1] range as game outcomes.
@@ -161,7 +150,6 @@ class GameNetwork:
         value = keras.layers.Dense(
             64,
             activation="relu",
-            kernel_regularizer=regularizer,
         )(value)
         value = keras.layers.Dense(1, activation="tanh", name="value")(value)
 

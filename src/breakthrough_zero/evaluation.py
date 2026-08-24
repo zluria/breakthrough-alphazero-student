@@ -4,8 +4,6 @@ import math
 import random
 import time
 
-import numpy as np
-
 from .game import Breakthrough
 
 
@@ -103,13 +101,6 @@ def wilson_interval(successes, games, z=1.96):
     return (max(0.0, center - margin), min(1.0, center + margin))
 
 
-def score_to_elo(score):
-    """Convert an expected score to the corresponding Elo difference."""
-
-    score = max(0.000001, min(0.999999, score))
-    return 400 * math.log10(score / (1 - score))
-
-
 def evaluate_pair(
     agent_a,
     agent_b,
@@ -160,11 +151,9 @@ def evaluate_pair(
             successful.append(game)
     score = 0.0
     total_seconds = 0.0
-    sequences = []
     for game in successful:
         score += game["agent_a_score"]
         total_seconds += game["elapsed_s"]
-        sequences.append(tuple(game["moves"]))
 
     if successful:
         rate = score / len(successful)
@@ -173,19 +162,6 @@ def evaluate_pair(
         rate = 0.0
         mean_seconds = 0.0
     interval = wilson_interval(score, len(successful))
-    duplicate_fraction = 1 - len(set(sequences)) / max(1, len(sequences))
-
-    alarms = []
-    if duplicate_fraction > 0.25:
-        alarms.append("duplicate game fraction is %.3f" % duplicate_fraction)
-    if len(successful) >= 40 and rate == 0.5:
-        alarms.append("suspiciously exact 50/50 split; inspect paired games")
-
-    elo_difference = None
-    elo_interval = None
-    if successful:
-        elo_difference = score_to_elo(rate)
-        elo_interval = [score_to_elo(interval[0]), score_to_elo(interval[1])]
     return {
         "agent_a": agent_a_name,
         "agent_b": agent_b_name,
@@ -197,97 +173,6 @@ def evaluate_pair(
         "agent_a_score": score,
         "agent_a_score_rate": rate,
         "score_95_interval": list(interval),
-        "elo_difference": elo_difference,
-        "elo_95_interval": elo_interval,
         "mean_game_seconds": mean_seconds,
-        "duplicate_game_fraction": duplicate_fraction,
-        "alarms": alarms,
         "games": games,
     }
-
-
-def fit_elo_table(reports, anchor):
-    """Fit one connected Bradley-Terry table, with the anchor fixed at zero.
-
-    Only rating differences are identifiable, so fixing one agent at zero sets
-    the origin without changing any predicted matchup probabilities.
-    """
-
-    name_set = set()
-    for report in reports:
-        name_set.add(report["agent_a"])
-        name_set.add(report["agent_b"])
-    names = sorted(name_set)
-    if anchor not in names:
-        raise ValueError("anchor is absent from the reports")
-
-    free_names = []
-    for name in names:
-        if name != anchor:
-            free_names.append(name)
-    name_index = {}
-    for index in range(len(free_names)):
-        name_index[free_names[index]] = index
-    strengths = np.zeros(len(free_names), dtype=np.float64)
-
-    for unused_round in range(100):
-        gradient = np.zeros(len(free_names), dtype=np.float64)
-        information = np.eye(len(free_names), dtype=np.float64) * 0.000001
-        for report in reports:
-            games = int(report["games_completed"])
-            if games <= 0:
-                continue
-            name_a = report["agent_a"]
-            name_b = report["agent_b"]
-            strength_a = 0.0 if name_a == anchor else strengths[name_index[name_a]]
-            strength_b = 0.0 if name_b == anchor else strengths[name_index[name_b]]
-            difference = max(-30.0, min(30.0, strength_a - strength_b))
-            probability = 1.0 / (1.0 + math.exp(-difference))
-            # A half-win and half-loss keep undefeated matchups finite while
-            # having little effect once many games have been played.
-            effective_games = games + 1.0
-            successes = float(report["agent_a_score"]) + 0.5
-            residual = effective_games * probability - successes
-            curve = effective_games * probability * (1.0 - probability)
-
-            if name_a != anchor:
-                a = name_index[name_a]
-                gradient[a] += residual
-                information[a, a] += curve
-            if name_b != anchor:
-                b = name_index[name_b]
-                gradient[b] -= residual
-                information[b, b] += curve
-            if name_a != anchor and name_b != anchor:
-                information[a, b] -= curve
-                information[b, a] -= curve
-        step = np.linalg.solve(information, gradient)
-        strengths = strengths - step
-        if len(step) == 0 or np.max(np.abs(step)) < 0.000000001:
-            break
-
-    # The inverse observed-information matrix approximates rating uncertainty.
-    covariance = np.linalg.inv(information)
-    scale = 400.0 / math.log(10.0)
-    ratings = []
-    for name in names:
-        if name == anchor:
-            rating = 0.0
-            error = 0.0
-        else:
-            index = name_index[name]
-            rating = float(strengths[index] * scale)
-            error = float(math.sqrt(max(0.0, covariance[index, index])) * scale)
-        ratings.append(
-            {
-                "agent": name,
-                "elo": rating,
-                "standard_error": error,
-                "elo_95_interval": [rating - 1.96 * error, rating + 1.96 * error],
-            }
-        )
-    def rating_value(row):
-        return row["elo"]
-
-    ratings.sort(key=rating_value, reverse=True)
-    return {"anchor": anchor, "reports": len(reports), "ratings": ratings}

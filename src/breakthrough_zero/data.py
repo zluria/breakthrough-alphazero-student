@@ -1,8 +1,8 @@
 """Reconstructable self-play records saved as gzip JSON lines.
 
-Each record keeps the position, legal actions, search visits, original priors,
-played action, and final absolute outcome. Training targets and diagnostics can
-therefore be recomputed without playing the games again.
+Each record keeps the position, MCTS visit counts, and final absolute outcome.
+The neural training targets can therefore be reconstructed without playing the
+game again. Readers ignore extra fields in older corpus records.
 """
 
 import gzip
@@ -24,31 +24,21 @@ def state_from_record(record):
     )
 
 
-def make_record(game, result, game_index, ply, played_action):
-    # The actions are sorted once so the parallel visit-count and prior lists
-    # have an explicit, reproducible correspondence.
-    actions = sorted(result["visit_counts"])
+def make_record(game, result, game_index):
+    # The parallel action and count lists have an explicit correspondence.
+    actions = list(result["visit_counts"])
     counts = []
-    priors = []
     for action in actions:
         counts.append(result["visit_counts"][action])
-        priors.append(result["priors"][action])
 
     return {
         "game_index": game_index,
-        "ply": ply,
         "board_size": game.board_size,
         "starting_rows": game.starting_rows,
         "board": list(game.board),
         "player_to_move": game.player_to_move,
         "legal_actions": actions,
         "visit_counts": counts,
-        "priors": priors,
-        "root_value": result["root_value"],
-        "root_visits": sum(counts),
-        "simulations": result["simulations"],
-        "search_elapsed_s": result["elapsed_s"],
-        "played_action": played_action,
         "final_outcome": None,
     }
 
@@ -67,7 +57,7 @@ def choose_action(result, temperature):
 
     weights = []
     for action in actions:
-        count = max(counts[int(action)], 0.000000000001)
+        count = counts[int(action)]
         weights.append(count ** (1.0 / temperature))
     weights = np.array(weights, dtype=np.float64)
     weights = weights / weights.sum()
@@ -96,7 +86,7 @@ def play_self_play_game(
         else:
             move_temperature = 0.0
         action = choose_action(result, move_temperature)
-        record = make_record(game, result, game_index, ply, action)
+        record = make_record(game, result, game_index)
         records.append(record)
         game.make_move(game.decode(action))
         ply += 1
@@ -139,28 +129,3 @@ def read_records(path):
             if line.strip():
                 records.append(json.loads(line))
     return records
-
-
-def summarize_records(records):
-    if not records:
-        return {"positions": 0, "games": 0}
-
-    game_numbers = set()
-    total_search_seconds = 0.0
-    total_root_visits = 0
-    player_1_positions = 0
-    for record in records:
-        game_numbers.add(record["game_index"])
-        total_search_seconds += record["search_elapsed_s"]
-        total_root_visits += record["root_visits"]
-        if record["final_outcome"] == 1:
-            player_1_positions += 1
-
-    return {
-        "positions": len(records),
-        "games": len(game_numbers),
-        "mean_game_length": len(records) / len(game_numbers),
-        "mean_search_seconds": total_search_seconds / len(records),
-        "mean_root_visits": total_root_visits / len(records),
-        "player1_outcome_fraction": player_1_positions / len(records),
-    }

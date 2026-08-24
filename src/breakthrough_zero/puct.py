@@ -16,53 +16,38 @@ from .agents import rollout_outcome
 class RolloutEvaluator:
     """The non-neural evaluator: uniform priors and one random rollout."""
 
-    def __init__(self, tactical=False):
-        self.tactical = tactical
-
     def evaluate(self, game):
         actions = game.legal_actions()
         probability = 1.0 / len(actions)
         priors = {}
         for action in actions:
             priors[action] = probability
-        value = rollout_outcome(game, self.tactical)
+        value = rollout_outcome(game)
         return priors, float(value)
-
-
-class NeuralEvaluator:
-    """Adapt the neural boundary to the evaluator interface used by PUCT."""
-
-    def __init__(self, boundary):
-        self.boundary = boundary
-
-    def evaluate(self, game):
-        prediction = self.boundary.predict(game)
-        return prediction["priors"], prediction["value"]
 
 
 class PUCTNode:
     """Search statistics for one state reached through its parent's action.
 
-    ``value_sum`` and ``q()`` are always absolute Player-1 values. Children are
-    indexed by mover-relative policy actions.
+    ``q`` is always an absolute Player-1 value. A new child inherits its
+    parent's current estimate as its first-play value.
     """
 
-    def __init__(self, prior):
+    def __init__(self, prior, parent=None):
         self.prior = float(prior)
-        self.visit_count = 0
-        self.value_sum = 0.0
+        self.parent = parent
+        self.visits = 0
+        if parent is None:
+            self.q = 0.0
+        else:
+            self.q = parent.q
         self.children = {}
-
-    def q(self):
-        if self.visit_count == 0:
-            return 0.0
-        return self.value_sum / self.visit_count
 
     def expand(self, priors):
         if self.children:
             return
-        for action in sorted(priors):
-            self.children[action] = PUCTNode(priors[action])
+        for action in priors:
+            self.children[action] = PUCTNode(priors[action], self)
 
 
 class PUCTPlayer:
@@ -84,13 +69,6 @@ class PUCTPlayer:
         self.dirichlet_alpha = dirichlet_alpha
         self.dirichlet_fraction = dirichlet_fraction
 
-    def child_q(self, parent, child):
-        # First-play urgency gives an unvisited move the parent's current value.
-        # This avoids treating every new move as if its value were exactly zero.
-        if child.visit_count == 0:
-            return parent.q()
-        return child.q()
-
     def select_child(self, parent, parent_player):
         if not parent.children:
             raise ValueError("cannot select from an unexpanded node")
@@ -98,39 +76,39 @@ class PUCTPlayer:
         best_action = None
         best_child = None
         best_score = -math.inf
-        parent_scale = math.sqrt(parent.visit_count)
+        parent_scale = math.sqrt(parent.visits)
 
-        for action in sorted(parent.children):
+        for action in parent.children:
             child = parent.children[action]
-            q = self.child_q(parent, child)
             exploration = (
                 self.cpuct
                 * child.prior
                 * parent_scale
-                / (1 + child.visit_count)
+                / (1 + child.visits)
             )
             # Player 1 maximizes Q and Player 2 minimizes it. Multiplying by the
             # parent player lets both cases use the same maximizing selection.
-            score = parent_player * q + exploration
+            score = parent_player * child.q + exploration
             if score > best_score:
                 best_score = score
                 best_action = action
                 best_child = child
         return best_action, best_child
 
-    def backup(self, path, absolute_value):
+    def backup(self, node, absolute_value):
         # The value has already been converted to Player 1's viewpoint, so its
         # sign stays unchanged at every level of the path.
-        for node in path:
-            node.visit_count += 1
-            node.value_sum += absolute_value
+        while node is not None:
+            node.visits += 1
+            node.q += (absolute_value - node.q) / node.visits
+            node = node.parent
 
     def add_root_noise(self, root):
         # Dirichlet noise is applied only at the root during self-play. It makes
         # different games investigate different plausible opening moves.
         if self.dirichlet_alpha is None:
             return
-        actions = sorted(root.children)
+        actions = list(root.children)
         settings = [self.dirichlet_alpha] * len(actions)
         noise = np.random.dirichlet(settings)
         for index in range(len(actions)):
@@ -144,63 +122,51 @@ class PUCTPlayer:
         if game.status() is not None:
             raise ValueError("cannot search a terminal position")
 
-        before = (tuple(game.board), game.player_to_move, game.winner)
-        started = time.perf_counter()
         if self.move_time_s is None:
             deadline = math.inf
         else:
-            deadline = started + self.move_time_s
+            deadline = time.perf_counter() + self.move_time_s
 
         root = PUCTNode(1.0)
-        priors, unused_value = self.evaluator.evaluate(game.clone())
+        priors, root_value = self.evaluator.evaluate(game)
+        root.q = root_value
         root.expand(priors)
-        # Keep the evaluator's priors as search evidence. Root noise changes the
-        # search trajectory and visit target, but not this recorded prediction.
-        original_priors = dict(priors)
         if add_root_noise:
             self.add_root_noise(root)
 
         completed = 0
         while completed < self.simulations and time.perf_counter() < deadline:
-            # Each simulation uses a clone, so search cannot change the position
-            # supplied by its caller.
+            # All simulated moves are made on a clone, leaving the caller's
+            # position unchanged.
             state = game.clone()
             node = root
-            path = [root]
 
             # Selection follows PUCT until it reaches a terminal state or a
             # previously unvisited child.
             while node.children and state.status() is None:
                 action, node = self.select_child(node, state.player_to_move)
                 state.make_move(state.decode(action))
-                path.append(node)
-                if node.visit_count == 0:
+                if node.visits == 0:
                     break
 
             if state.status() is not None:
                 value = float(state.status())
+                leaf_priors = None
             else:
                 # The leaf evaluation supplies both the value to back up and the
                 # policy priors used when this leaf is visited again.
                 leaf_priors, value = self.evaluator.evaluate(state)
+            # Backing up first makes the leaf's first Q exactly its evaluation;
+            # newly expanded children then inherit that value.
+            self.backup(node, value)
+            if leaf_priors is not None:
                 node.expand(leaf_priors)
-            self.backup(path, value)
             completed += 1
-
-        after = (tuple(game.board), game.player_to_move, game.winner)
-        if after != before:
-            raise AssertionError("search mutated its input state")
 
         visit_counts = {}
         for action in root.children:
-            visit_counts[action] = root.children[action].visit_count
-        return {
-            "visit_counts": visit_counts,
-            "priors": original_priors,
-            "root_value": root.q(),
-            "simulations": completed,
-            "elapsed_s": time.perf_counter() - started,
-        }
+            visit_counts[action] = root.children[action].visits
+        return {"visit_counts": visit_counts}
 
     def choose_move(self, game, add_root_noise=False):
         result = self.search(game, add_root_noise)
@@ -214,7 +180,7 @@ def best_action(search_result):
         raise ValueError("search result has no actions")
     best = None
     best_count = -1
-    for action in sorted(counts):
+    for action in counts:
         if counts[action] > best_count:
             best = action
             best_count = counts[action]
