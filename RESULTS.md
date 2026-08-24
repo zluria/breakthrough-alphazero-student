@@ -6,7 +6,7 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 
 | Gate | Board | Result | Evidence |
 |---|---:|---|---|
-| Simplified rules/search/data/evaluation/style tests | 5x5 and 8x8 | 36/36 pass on HPC; 34 pass and 2 TensorFlow-only skips locally | Slurm job 33976 and local rewrite gate |
+| Rules/search/data/evaluation/style tests | 5x5 and 8x8 | 37/37 pass on HPC; 35 pass and 2 Keras tests skip locally | Slurm jobs 33976 and 33985 |
 | Keras save/load | 5x5 | Pass after simplicity rewrite | Slurm job 33976, TensorFlow 2.14 on RTX 2080 SUPER |
 | Dummy-MCTS data smoke | 5x5 | 2 games, 49 positions, 4 visits/root | Slurm job 33967 |
 | Solver-supervised diagnostic, attempt 1 | 5x5 | Rejected: memorized training data, 0.0 tactical value accuracy | Slurm job 33968 |
@@ -18,6 +18,8 @@ Only completed, reproducible measurements belong in this file. Generated JSON re
 | Continuation learning-rate screen | 5x5 | Short screen selected `0.0001`, but fresh confirmation showed it only delayed the marginal value crossing | Slurm jobs 33978-33980 |
 | AlphaZero learning, attempt 3 | 5x5 | Stopped after iteration 4: tactical value 83.3%→66.7%; policy 100%, swap error 0, replay consumption 0.740 | Slurm job 33980 |
 | Replay × learning-rate screen | 5x5 | Replay rehearsal rejected; unseeded `0.00025` retained all gates and improved solver policy 39.6%→45.7%, value MSE 0.247→0.203 | Slurm jobs 33981-33982 |
+| Tactical retention redesign | 5x5 | 20 balanced exact base positions + 20 swaps; mean signed value catches the unstable run's -0.0535 decline while accepting every 0.0001 step and the fresh 0.00025 step | Slurm job 33985 |
+| Training-loop audit | 5x5 | Fixed randomness removed; fresh Adam rejected; 0.00025 retained; loop otherwise unchanged | Slurm jobs 33984-33985 |
 
 ## Playing strength
 

@@ -17,7 +17,7 @@ conda run -n zur_env python -m breakthrough_zero.cli pretrain-network \
   --data data/raw/pretraining-5x5-10000.jsonl.gz \
   --output checkpoints/pretrained-small-5x5.keras \
   --report results/phase7/pretrained-small-report.json \
-  --epochs 8 --batch-size 128 --seed 20260821 \
+  --epochs 8 --batch-size 128 \
   --filters 24 --residual-blocks 2
 conda run -n zur_env python -m breakthrough_zero.cli learn \
   --config configs/research-baseline-5x5.json \

@@ -36,7 +36,6 @@ def build_agent(
     simulations,
     move_seconds,
     checkpoint,
-    seed,
 ):
     if name == "neural":
         if checkpoint is None:
@@ -48,19 +47,17 @@ def build_agent(
             NeuralEvaluator(NeuralBoundary(network)),
             simulations,
             1.5,
-            seed,
             move_seconds,
         )
     if name == "random":
-        return RandomAgent(seed)
+        return RandomAgent()
     if name == "alphabeta":
         return AlphaBetaAgent(4, move_seconds)
     if name == "rollout":
         return PUCTPlayer(
-            RolloutEvaluator(seed),
+            RolloutEvaluator(),
             simulations,
             1.5,
-            seed,
             move_seconds,
         )
     raise ValueError("unknown agent: " + name)
@@ -75,7 +72,6 @@ def build_parser():
     diagnostic.add_argument("--examples", type=int, default=2048)
     diagnostic.add_argument("--epochs", type=int, default=24)
     diagnostic.add_argument("--batch-size", type=int, default=64)
-    diagnostic.add_argument("--seed", type=int, default=20260811)
 
     data = commands.add_parser("pretrain-data")
     data.add_argument("--config", required=True)
@@ -88,7 +84,6 @@ def build_parser():
     pretrain.add_argument("--report", required=True)
     pretrain.add_argument("--epochs", type=int, default=8)
     pretrain.add_argument("--batch-size", type=int, default=128)
-    pretrain.add_argument("--seed", type=int, default=20260811)
     pretrain.add_argument("--filters", type=int, default=48)
     pretrain.add_argument("--residual-blocks", type=int, default=3)
 
@@ -115,7 +110,6 @@ def build_parser():
     arena.add_argument("--prefix-plies", type=int, default=4)
     arena.add_argument("--move-seconds", type=float, default=0.1)
     arena.add_argument("--simulations", type=int, default=1000000)
-    arena.add_argument("--seed", type=int, default=20260811)
     arena.add_argument("--output", required=True)
 
     elo = commands.add_parser("elo-table")
@@ -132,7 +126,6 @@ def main(arguments=None):
         report = run_supervised_diagnostic(
             args.output_dir,
             args.examples,
-            args.seed,
             args.epochs,
             args.batch_size,
         )
@@ -151,7 +144,6 @@ def main(arguments=None):
             args.output,
             args.epochs,
             args.batch_size,
-            args.seed,
             args.filters,
             args.residual_blocks,
         )
@@ -179,7 +171,6 @@ def main(arguments=None):
             args.simulations,
             args.move_seconds,
             args.a_checkpoint,
-            args.seed,
         )
         agent_b = build_agent(
             args.agent_b,
@@ -187,7 +178,6 @@ def main(arguments=None):
             args.simulations,
             args.move_seconds,
             args.b_checkpoint,
-            args.seed + 1000000,
         )
         report = evaluate_pair(
             agent_a,
@@ -198,7 +188,6 @@ def main(arguments=None):
             args.prefix_plies,
             args.board_size,
             args.starting_rows,
-            args.seed,
         )
         write_json(args.output, report)
         summary = dict(report)

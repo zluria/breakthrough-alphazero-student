@@ -4,7 +4,6 @@
   "games": 10000,
   "simulations": 100,
   "cpuct": 1.5,
-  "seed": 20260812,
   "tactical_rollouts": false,
   "temperature": 1.0,
   "temperature_plies": 12

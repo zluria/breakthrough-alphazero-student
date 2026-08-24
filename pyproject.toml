@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "breakthrough-alphazero-student"
 version = "0.1.0"
-description = "A compact, student-readable AlphaZero-style engine for Breakthrough"
+description = "A compact AlphaZero-style engine for Breakthrough"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = ["numpy>=1.23.5,<2"]

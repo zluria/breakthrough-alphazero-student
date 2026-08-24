@@ -9,7 +9,6 @@
   "batch_size": 64,
   "learning_rate": 0.00025,
   "replay_capacity": 8000,
-  "seed": 20260821,
   "dirichlet_alpha": null,
   "dirichlet_fraction": 0.25,
   "temperature": 1.0,

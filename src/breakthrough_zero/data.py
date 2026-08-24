@@ -1,4 +1,4 @@
-"""Plain-dictionary self-play records saved as gzip JSON lines."""
+"""Dictionary self-play records saved as gzip JSON lines."""
 
 import gzip
 import json
@@ -19,7 +19,7 @@ def state_from_record(record):
     )
 
 
-def make_record(game, result, game_index, ply, played_action, seed):
+def make_record(game, result, game_index, ply, played_action):
     actions = sorted(result["visit_counts"])
     counts = []
     priors = []
@@ -43,11 +43,10 @@ def make_record(game, result, game_index, ply, played_action, seed):
         "search_elapsed_s": result["elapsed_s"],
         "played_action": played_action,
         "final_outcome": None,
-        "seed": seed,
     }
 
 
-def choose_action(result, random_generator, temperature):
+def choose_action(result, temperature):
     counts = result["visit_counts"]
     actions = np.array(sorted(counts), dtype=np.int64)
     if temperature <= 0.00000001:
@@ -59,7 +58,7 @@ def choose_action(result, random_generator, temperature):
         weights.append(count ** (1.0 / temperature))
     weights = np.array(weights, dtype=np.float64)
     weights = weights / weights.sum()
-    return int(random_generator.choice(actions, p=weights))
+    return int(np.random.choice(actions, p=weights))
 
 
 def play_self_play_game(
@@ -67,13 +66,11 @@ def play_self_play_game(
     board_size,
     starting_rows,
     game_index,
-    seed,
     temperature=1.0,
     temperature_plies=8,
     add_root_noise=False,
 ):
     game = Breakthrough(board_size, starting_rows)
-    random_generator = np.random.default_rng(seed)
     records = []
     ply = 0
 
@@ -83,8 +80,8 @@ def play_self_play_game(
             move_temperature = temperature
         else:
             move_temperature = 0.0
-        action = choose_action(result, random_generator, move_temperature)
-        record = make_record(game, result, game_index, ply, action, seed)
+        action = choose_action(result, move_temperature)
+        record = make_record(game, result, game_index, ply, action)
         records.append(record)
         game.make_move(game.decode(action))
         ply += 1

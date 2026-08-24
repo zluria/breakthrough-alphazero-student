@@ -14,9 +14,7 @@ def randomized_openings(
     board_size=5,
     starting_rows=1,
     prefix_plies=4,
-    seed=0,
 ):
-    random_generator = random.Random(seed)
     openings = []
     seen = set()
     attempts = 0
@@ -30,7 +28,7 @@ def randomized_openings(
         for unused_ply in range(prefix_plies):
             if game.status() is not None:
                 break
-            move = random_generator.choice(game.legal_moves())
+            move = random.choice(game.legal_moves())
             moves.append(move)
             game.make_move(move)
         if game.status() is not None:
@@ -115,14 +113,12 @@ def evaluate_pair(
     prefix_plies=4,
     board_size=5,
     starting_rows=1,
-    seed=20260811,
 ):
     openings = randomized_openings(
         opening_count,
         board_size,
         starting_rows,
         prefix_plies,
-        seed,
     )
     games = []
     for opening_index in range(len(openings)):

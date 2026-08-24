@@ -3,7 +3,7 @@ import unittest
 
 
 class SimplePythonTests(unittest.TestCase):
-    def test_teaching_source_avoids_advanced_language_features(self):
+    def test_source_avoids_advanced_language_features(self):
         banned_text = [
             "from __future__",
             "dataclass",

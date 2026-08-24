@@ -1,4 +1,4 @@
-"""Solver-labelled examples and a small tactical test set."""
+"""Solver-labelled examples and a tactical test set."""
 
 import json
 import math
@@ -9,61 +9,146 @@ import numpy as np
 
 from .agents import AlphaBetaAgent, evaluate_position
 from .game import Breakthrough, PLAYER_1, game_from_rows
-from .neural import GameNetwork, NeuralBoundary, canonical_planes, get_tensorflow
+from .neural import GameNetwork, NeuralBoundary, canonical_planes
 from .symmetry import transform_state
 
 
 def tactical_suite():
-    positions = [
-        {
-            "name": "immediate_win",
-            "category": "immediate wins",
-            "game": game_from_rows(
-                [".....", "....2", ".....", "..1..", "....."],
-                PLAYER_1,
-            ),
-        },
-        {
-            "name": "must_defend",
-            "category": "immediate threats requiring defense",
-            "game": game_from_rows(
-                [".1...", "..2..", ".....", ".....", "....2"],
-                PLAYER_1,
-            ),
-        },
-        {
-            "name": "forced_race",
-            "category": "forced wins and losses",
-            "game": game_from_rows(
-                ["1....", ".....", ".1.2.", ".....", "....2"],
-                PLAYER_1,
-            ),
-        },
-        {
-            "name": "forced_loss",
-            "category": "forced wins and losses",
-            "game": game_from_rows(
-                ["....1", ".2..1", ".....", ".....", "....2"],
-                PLAYER_1,
-            ),
-        },
-        {
-            "name": "material_edge",
-            "category": "material advantages",
-            "game": game_from_rows(
-                ["11...", "..1..", ".....", "...2.", "....2"],
-                PLAYER_1,
-            ),
-        },
-        {
-            "name": "passed_pawn",
-            "category": "advanced passed pawns",
-            "game": game_from_rows(
-                ["1....", ".....", ".1...", "...2.", "....2"],
-                PLAYER_1,
-            ),
-        },
+    """Return 20 exact positions and their 20 color-swapped partners."""
+
+    definitions = [
+        (
+            "immediate_win_center",
+            "immediate wins",
+            [".....", "....2", ".....", "..1..", "....."],
+            1,
+        ),
+        (
+            "immediate_win_left",
+            "immediate wins",
+            ["1....", "..2..", ".....", "1....", "....2"],
+            1,
+        ),
+        (
+            "immediate_win_capture",
+            "immediate wins",
+            ["....1", ".....", "..2..", "....1", "...2."],
+            1,
+        ),
+        (
+            "must_defend_center",
+            "immediate threats requiring defense",
+            [".1...", "..2..", ".....", ".....", "....2"],
+            1,
+        ),
+        (
+            "must_defend_double_left",
+            "immediate threats requiring defense",
+            ["1...1", ".2.2.", ".....", ".....", "....."],
+            -1,
+        ),
+        (
+            "must_defend_double_right",
+            "immediate threats requiring defense",
+            [".1.1.", "2...2", "..1..", ".....", "....."],
+            -1,
+        ),
+        (
+            "must_defend_right",
+            "immediate threats requiring defense",
+            ["...1.", "....2", ".1...", ".....", "2...."],
+            1,
+        ),
+        (
+            "forced_race",
+            "forced wins and losses",
+            ["1....", ".....", ".1.2.", ".....", "....2"],
+            1,
+        ),
+        (
+            "forced_loss",
+            "forced wins and losses",
+            ["....1", ".2..1", ".....", ".....", "....2"],
+            -1,
+        ),
+        (
+            "forced_loss_center",
+            "forced wins and losses",
+            ["1...1", ".....", ".2...", "...2.", "....."],
+            -1,
+        ),
+        (
+            "forced_loss_wide",
+            "forced wins and losses",
+            ["..1..", ".....", "2....", "....2", "....."],
+            -1,
+        ),
+        (
+            "forced_loss_advanced",
+            "forced wins and losses",
+            ["....1", ".....", "2....", ".2...", "....."],
+            -1,
+        ),
+        (
+            "material_edge",
+            "material advantages",
+            ["11...", "..1..", ".....", "...2.", "....2"],
+            1,
+        ),
+        (
+            "material_center",
+            "material advantages",
+            ["11...", "...1.", ".....", "..2..", "....2"],
+            1,
+        ),
+        (
+            "material_trap_split",
+            "material advantages",
+            ["1.1.1", ".2.2.", ".....", ".....", "....."],
+            -1,
+        ),
+        (
+            "material_trap_wide",
+            "material advantages",
+            ["11.11", "2...2", ".....", ".....", "....."],
+            -1,
+        ),
+        (
+            "passed_pawn",
+            "advanced passed pawns",
+            ["1....", ".....", ".1...", "...2.", "....2"],
+            1,
+        ),
+        (
+            "passed_pawn_center",
+            "advanced passed pawns",
+            ["....1", ".....", "..1..", "2....", "....2"],
+            1,
+        ),
+        (
+            "passed_pawn_loses_race",
+            "advanced passed pawns",
+            ["1....", "....2", "..1..", "2....", "....."],
+            -1,
+        ),
+        (
+            "passed_pawn_too_slow",
+            "advanced passed pawns",
+            ["....1", ".2...", "...1.", ".....", "2...."],
+            -1,
+        ),
     ]
+
+    positions = []
+    for name, category, rows, outcome in definitions:
+        positions.append(
+            {
+                "name": name,
+                "category": category,
+                "game": game_from_rows(rows, PLAYER_1),
+                "outcome": outcome,
+            }
+        )
 
     paired = list(positions)
     for position in positions:
@@ -72,16 +157,16 @@ def tactical_suite():
                 "name": position["name"] + "_swapped",
                 "category": position["category"],
                 "game": transform_state(position["game"], (True, False)),
+                "outcome": -position["outcome"],
             }
         )
     return paired
 
 
-def generate_solver_examples(count, seed=0, search_depth=6):
+def generate_solver_examples(count, search_depth=6):
     if count < 2:
         raise ValueError("count must be at least two")
     target_per_label = count // 2
-    random_generator = random.Random(seed)
     solver = AlphaBetaAgent(search_depth)
     boundary = NeuralBoundary()
     buckets = {1: [], -1: []}
@@ -92,11 +177,11 @@ def generate_solver_examples(count, seed=0, search_depth=6):
         if attempts > count * 200:
             raise RuntimeError("could not build a balanced solver dataset")
         game = Breakthrough(5, 1)
-        skip = random_generator.randint(4, 14)
+        skip = random.randint(4, 14)
         for unused_move in range(skip):
             if game.status() is not None:
                 break
-            move = random_generator.choice(game.legal_moves())
+            move = random.choice(game.legal_moves())
             game.make_move(move)
         if game.status() is not None or len(game.legal_moves()) < 2:
             continue
@@ -121,7 +206,7 @@ def generate_solver_examples(count, seed=0, search_depth=6):
         buckets[relative_label].append(example)
 
     examples = buckets[1][:target_per_label] + buckets[-1][:target_per_label]
-    random_generator.shuffle(examples)
+    random.shuffle(examples)
     inputs = []
     policies = []
     values = []
@@ -169,16 +254,14 @@ def evaluate_tactical_suite(network, solver_depth=8):
     rows = []
     for position in tactical_suite():
         game = position["game"]
-        expected_value, best_actions = solver_optimal_actions(
+        unused_value, best_actions = solver_optimal_actions(
             game.clone(), solver_depth
         )
-        if expected_value > 0:
-            expected_outcome = 1
-        else:
-            expected_outcome = -1
+        expected_outcome = position["outcome"]
         prediction = boundary.predict(game)
         priors = prediction["priors"]
         predicted_action = max(priors, key=priors.get)
+        signed_value = prediction["value"] * expected_outcome
         rows.append(
             {
                 "name": position["name"],
@@ -186,7 +269,8 @@ def evaluate_tactical_suite(network, solver_depth=8):
                 "player_to_move": game.player_to_move,
                 "expected_absolute_outcome": expected_outcome,
                 "predicted_absolute_value": prediction["value"],
-                "value_correct": prediction["value"] * expected_outcome > 0,
+                "signed_value": signed_value,
+                "value_correct": signed_value > 0,
                 "solver_actions": best_actions,
                 "top_policy_action": predicted_action,
                 "policy_correct": predicted_action in best_actions,
@@ -209,32 +293,63 @@ def evaluate_tactical_suite(network, solver_depth=8):
 
     correct_values = 0
     correct_policies = 0
+    signed_value_sum = 0.0
+    category_results = {}
     for row in rows:
         correct_values += int(row["value_correct"])
         correct_policies += int(row["policy_correct"])
+        signed_value_sum += row["signed_value"]
+
+        category = row["category"]
+        if category not in category_results:
+            category_results[category] = {
+                "positions": 0,
+                "correct_values": 0,
+                "correct_policies": 0,
+                "signed_value_sum": 0.0,
+            }
+        result = category_results[category]
+        result["positions"] += 1
+        result["correct_values"] += int(row["value_correct"])
+        result["correct_policies"] += int(row["policy_correct"])
+        result["signed_value_sum"] += row["signed_value"]
+
+    by_category = {}
+    for category in category_results:
+        result = category_results[category]
+        count = result["positions"]
+        by_category[category] = {
+            "positions": count,
+            "value_accuracy": result["correct_values"] / count,
+            "mean_signed_value": result["signed_value_sum"] / count,
+            "policy_accuracy": result["correct_policies"] / count,
+        }
     return {
         "positions": rows,
         "value_accuracy": correct_values / len(rows),
+        "signed_value_sum": signed_value_sum,
+        "mean_signed_value": signed_value_sum / len(rows),
         "policy_accuracy": correct_policies / len(rows),
         "mean_color_swap_absolute_error": float(np.mean(swap_errors)),
+        "by_category": by_category,
     }
 
 
 def run_supervised_diagnostic(
     output_dir,
     examples=2048,
-    seed=0,
     epochs=24,
     batch_size=64,
 ):
+    import keras
+
     os.makedirs(output_dir, exist_ok=True)
     inputs, policies, values, dataset_metrics = generate_solver_examples(
-        examples, seed, 6
+        examples, 6
     )
     split = int(0.8 * len(inputs))
-    get_tensorflow().keras.utils.set_random_seed(seed)
     network = GameNetwork(5)
-    early_stopping = get_tensorflow().keras.callbacks.EarlyStopping(
+    early_stopping = keras.callbacks.EarlyStopping(
         monitor="val_loss",
         patience=5,
         restore_best_weights=True,

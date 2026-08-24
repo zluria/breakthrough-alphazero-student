@@ -1,4 +1,4 @@
-"""A bounded list of old positions and simple symmetry augmentation."""
+"""A bounded list of old positions and symmetry augmentation."""
 
 import random
 
@@ -10,12 +10,11 @@ from .symmetry import SYMMETRIES, transform_action, transform_state
 
 
 class ReplayBuffer:
-    def __init__(self, capacity, seed=0):
+    def __init__(self, capacity):
         if capacity < 1:
             raise ValueError("capacity must be positive")
         self.capacity = capacity
         self.entries = []
-        self.random = random.Random(seed)
         self.total_added = 0
         self.total_sampled = 0
 
@@ -33,7 +32,7 @@ class ReplayBuffer:
             raise ValueError("cannot sample an empty replay buffer")
         records = []
         for unused_number in range(count):
-            record, unused_iteration = self.random.choice(self.entries)
+            record, unused_iteration = random.choice(self.entries)
             records.append(record)
         self.total_sampled += count
         return records

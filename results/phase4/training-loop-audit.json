@@ -1,0 +1,58 @@
+{
+  "status": "precommit_audit_complete",
+  "jobs": [33984, 33985],
+  "tests": {
+    "local": "37 passed with 2 Keras tests skipped",
+    "hpc": "37 passed",
+    "keras_import": "passed with import keras"
+  },
+  "randomness": {
+    "archived_games_per_iteration": 64,
+    "unique_games_per_iteration": 64,
+    "unique_first_eight_ply_prefixes_per_iteration": 64,
+    "problem": "Separate fresh runs reproduced the same first iteration because they reused fixed random seeds.",
+    "correction": "Fixed seeds and seed parameters were removed from agents, search, self-play, replay, evaluation, commands, configurations, and jobs."
+  },
+  "optimizer_state": {
+    "loaded_supervised_optimizer_steps": 13664,
+    "learning_rate": 0.00025,
+    "carried_state_after_five_tranches": {
+      "tactical_mean_signed_value": 0.7301,
+      "solver_value_accuracy": 0.9258,
+      "solver_value_mse": 0.2549,
+      "solver_policy_accuracy": 0.4551
+    },
+    "fresh_state_after_five_tranches": {
+      "tactical_mean_signed_value": 0.7240,
+      "solver_value_accuracy": 0.9297,
+      "solver_value_mse": 0.2370,
+      "solver_policy_accuracy": 0.4434
+    },
+    "decision": "Do not reset Adam. Resetting did not improve the controlled result."
+  },
+  "tactical_calibration": {
+    "pretrained_mean_signed_value": 0.687569,
+    "unstable_0.001_sequential_deltas": [
+      0.099260,
+      0.103210,
+      -0.053459,
+      -0.047258
+    ],
+    "stable_0.0001_sequential_deltas": [
+      0.009275,
+      0.026593,
+      0.019285,
+      0.010530,
+      0.005853
+    ],
+    "fresh_0.00025_first_delta": 0.024354,
+    "value_tolerance": 0.05,
+    "decision": "The tolerance catches the first material decline in the unstable run and does not reject the old marginal sign crossing."
+  },
+  "search_coverage": {
+    "stable_run_unvisited_root_action_fraction": "0.35% to 0.69%",
+    "unstable_run_largest_unvisited_root_action_fraction": "3.29%",
+    "decision": "Record the limitation, but do not add Gumbel search or forced root visits before the baseline is measured."
+  },
+  "training_loop_decision": "Keep the PLAY, REPLAY, TRAIN loop unchanged for the next baseline run. The measured failures were the brittle binary alarm, reused fixed randomness across runs, and an excessive update rate, not a demonstrated sign or target bug in the loop."
+}

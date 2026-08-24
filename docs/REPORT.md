@@ -2,9 +2,9 @@
 
 ## Abstract
 
-This project develops a compact AlphaZero-style engine for Breakthrough. Correctness is established in stages: a flat-list rules implementation is checked against an independent move generator; alpha-beta is checked against brute force; a two-plane mover-relative CNN is isolated behind one absolute-value conversion boundary; PUCT is tested with an assignment-prescribed dummy evaluator before being connected to the CNN. Training uses root visit counts for the policy target and final outcomes for the value target. The final study compares agents under reproducible, color-paired opening prefixes and equal wall-clock move budgets.
+This project develops a compact AlphaZero-style engine for Breakthrough. Correctness is established in stages: a flat-list rules implementation is checked against an independent move generator; alpha-beta is checked against brute force; a two-plane mover-relative CNN is isolated behind one absolute-value conversion boundary; PUCT is tested with an assignment-prescribed dummy evaluator before being connected to the CNN. Training uses root visit counts for the policy target and final outcomes for the value target. The final study compares agents under random, color-paired opening prefixes and equal wall-clock move budgets.
 
-The final numerical summary is inserted only from completed JSON and Slurm artifacts. The simplified suite discovers 36 tests: 34 pass and two TensorFlow-only tests skip locally, while all 36 pass in the TensorFlow HPC environment, including Keras save/load and separate native 5x5/8x8 network shapes. Before the language-level rewrite, the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy, 100% tactical policy accuracy, and exact player-swap consistency. The assignment's dummy-PUCT stage completed 10,000 games and 121,565 reconstructable positions with exactly 100 mean root visits. Neural pretraining on a whole-game split finished with validation policy/value losses of 2.233/0.746 and retained 83.3%/100% tactical value/policy accuracy with zero swap error. The rewritten loader and network passed their fresh TensorFlow regression gate in Slurm job 33976.
+The final numerical summary is inserted only from completed JSON and Slurm artifacts. The current suite discovers 37 tests: 35 pass and two Keras tests skip locally, while all 37 pass in the TensorFlow HPC environment, including Keras save/load and separate native 5x5/8x8 network shapes. Before the language-level rewrite, the revised solver-supervised diagnostic reached 90.2% held-out value accuracy, 60.0% held-out policy accuracy, 83.3% tactical value accuracy on the original suite, 100% tactical policy accuracy, and exact player-swap consistency. The assignment's dummy-PUCT stage completed 10,000 games and 121,565 reconstructable positions with exactly 100 mean root visits. Neural pretraining on a whole-game split finished with validation policy/value losses of 2.233/0.746. The current 20-base-position tactical suite gives that checkpoint a mean signed value of 0.6876, 95% sign accuracy, 100% policy accuracy, and zero swap error. Slurm job 33985 passed the current TensorFlow regression gate and calibrated the expanded tactical measure on the historical checkpoints.
 
 ## 1. Assignment and scope
 
@@ -16,7 +16,7 @@ The implementation begins with a native 5x5, one-row diagnostic game and later t
 
 The board is an ordinary row-major Python list. Player 1 starts at the top and advances toward the last row; Player 2 starts at the bottom and advances toward row zero. A pawn may step straight forward into an empty square, step diagonally forward into an empty square, or capture an opponent by a diagonal step. Reaching the opposite edge wins. A player unable to reply loses.
 
-Moves are ordinary two-item tuples of compact square indices. `make_move` appends one tuple containing the move, captured piece, previous player, and previous winner. `unmake_move` restores those fields directly. A terminal move deliberately leaves `player_to_move` equal to the mover, which prevents terminal state reporting from pretending that a losing reply turn began.
+Moves are two-item tuples of compact square indices. `make_move` appends one tuple containing the move, captured piece, previous player, and previous winner. `unmake_move` restores those fields directly. A terminal move leaves `player_to_move` equal to the mover, so terminal state reporting does not begin a reply turn.
 
 The public API contains the assignment names: `make_move`, `unmake_move`, `clone`, `encode`, `decode`, `status`, `outcome`, and `legal_moves`.
 
@@ -35,7 +35,7 @@ All tree values, replay outcomes, arena scores, and reports outside that boundar
 
 ## 4. Trusted baselines
 
-The random agent samples a legal move from a seeded generator. The tactical rollout agent checks immediate wins, then captures, then falls back to a seeded random choice. Alpha-beta uses a short, explicit evaluation combining material, forward progress, and mobility. It maximizes the one absolute score for Player 1 and minimizes it for Player 2.
+The random agent samples a legal move. The tactical rollout agent checks immediate wins, then captures, then falls back to a random choice. Alpha-beta uses a short, explicit evaluation combining material, forward progress, and mobility. It maximizes the one absolute score for Player 1 and minimizes it for Player 2.
 
 The rule gate compares legal moves with a separately written coordinate generator across full random games. Other checks cover captures, illegal straight captures, terminal goal moves, no-legal-reply outcomes, exact restoration, symmetry algebra, policy action round trips, and alpha-beta agreement with brute-force solving on tractable positions.
 
@@ -57,11 +57,11 @@ parent_player * Q(s,a) + U(s,a)
 
 Here `parent_player` is the player choosing the edge at the parent state. Player 1 therefore prefers larger absolute `Q`, while Player 2 prefers smaller absolute `Q`. Backup adds the same absolute outcome to every node on the path and never flips a sign.
 
-The assignment's dummy evaluator gives every legal action a uniform prior and obtains an absolute value from a seeded random rollout. It is used to generate the mandatory pretraining records before any neural PUCT self-play.
+The assignment's dummy evaluator gives every legal action a uniform prior and obtains an absolute value from a random rollout. It is used to generate the mandatory pretraining records before any neural PUCT self-play.
 
 ## 6. Data and training
 
-Every raw position is a plain dictionary preserving the absolute board, mover, legal relative actions, visit counts, priors, root value, root visits, requested and completed search effort, elapsed search time, played action, seed, and final absolute outcome. Alternative policy temperatures, symmetry choices, and value targets can therefore be reconstructed later.
+Every raw position is a dictionary preserving the absolute board, mover, legal relative actions, visit counts, priors, root value, root visits, requested and completed search effort, elapsed search time, played action, and final absolute outcome. Alternative policy temperatures, symmetry choices, and value targets can therefore be reconstructed later.
 
 The four exact game transformations combine player swap with left-right reflection. Player swap can create a neural tensor identical to the original canonical tensor; exact per-position hashing removes that duplicate so it is not accidentally overweighted.
 
@@ -107,6 +107,6 @@ The post-AlphaZero survey supports a narrow screen, not a platform rewrite. The 
 
 ## 11. Reproducibility and limitations
 
-Every HPC phase records a Git commit, Slurm job ID, command, configuration, seed, inputs, outputs, and pass/fail decision. Failed reports remain in the repository. Large raw data and checkpoints are saved beside the project but ignored by Git.
+Every HPC phase records a Git commit, Slurm job ID, command, configuration, inputs, outputs, and pass/fail decision. Failed reports remain in the repository. Large raw data and checkpoints are saved beside the project but ignored by Git.
 
-The main remaining risk is statistical power: a course-scale experiment cannot establish tiny playing-strength differences. Conclusions therefore require uncertainty intervals and avoid treating an exact split or a small point estimate as evidence. The native 8x8 work deliberately validates only a few settings rather than reopening a large tuning campaign.
+The main remaining risk is statistical power: the available compute cannot establish tiny playing-strength differences. Conclusions therefore require uncertainty intervals and avoid treating an exact split or a small point estimate as evidence. The native 8x8 work validates only a few settings rather than reopening a large tuning campaign.

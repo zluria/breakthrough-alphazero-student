@@ -1,22 +1,20 @@
-# Breakthrough AlphaZero - Student Edition
+# Breakthrough AlphaZero
 
-A compact AlphaZero-style project for Breakthrough, written for students who have completed introductory Python. The code starts with trusted rules and baselines, isolates the neural perspective conversion, and then builds PUCT, replay, self-play training, and paired-opening evaluation on top.
+A compact AlphaZero-style project for Breakthrough. The code starts with tested rules and baselines, isolates the neural perspective conversion, and then adds PUCT, replay, self-play training, and paired-opening evaluation.
 
-The repository is intentionally small. It uses ordinary Python lists and direct algorithms before considering optimization.
+The implementation uses direct Python and keeps the mathematical steps visible.
 
 This is a clean-room implementation derived from the supplied course handouts and the stated invariants. No implementation, checkpoint, training record, or infrastructure from the historical `breakthrough-zero` repository was copied.
 
-## Python level
+## Program structure
 
-The mathematical ideas are more advanced than the Python used to express them. The implementation deliberately avoids type annotations, `from __future__`, dataclasses, protocols, properties, decorators, and callable or factory machinery.
+The implementation uses lists, tuples, dictionaries, loops, functions, simple classes, NumPy, and Keras. It does not use type annotations, `from __future__`, dataclasses, protocols, properties, decorators, or callable and factory machinery.
 
 - A move is a two-item tuple: `(from_square, to_square)`.
 - An undo-history entry is a tuple containing the move and the old fields.
-- A self-play position, search result, metric, and report is a plain dictionary.
-- A symmetry is the tuple `(swap_players, reflect_left_right)` and is applied by ordinary functions.
+- A self-play position, search result, metric, and report is a dictionary.
+- A symmetry is the tuple `(swap_players, reflect_left_right)` and is applied by functions.
 - Classes are reserved for the game, agents, neural network, replay buffer, and PUCT node/player, where mutable state is genuinely useful.
-
-Students should be able to follow the control flow using lists, tuples, dictionaries, loops, functions, simple classes, NumPy, and Keras.
 
 ## The game
 
@@ -41,26 +39,28 @@ If you change the encoding or value convention, start with `tests/test_neural.py
 ## Code map
 
 - `game.py` - flat-list board, tuple moves, tuple undo history, legal moves, terminal rules, action mapping.
-- `agents.py` - random, tactical rollout, brute-force solver, readable alpha-beta.
+- `agents.py` - random, tactical rollout, brute-force solver, alpha-beta.
 - `neural.py` - two-plane canonicalization, the perspective boundary, native Keras CNN.
 - `puct.py` - dummy rollout evaluator, neural evaluator, PUCT tree search.
 - `data.py` - plain-dictionary gzip JSONL records with boards, counts, priors, root statistics, actions, and outcomes.
 - `replay.py` - a bounded list and four tuple-defined symmetries with duplicate tensors removed.
 - `diagnostics.py` - balanced alpha-beta supervision and color-paired tactical checks.
 - `training.py` - assignment pretraining and synchronous `PLAY -> REPLAY -> TRAIN` iterations.
-- `evaluation.py` - reproducible randomized opening prefixes, color pairing, Elo differences, intervals, and alarms.
-- `cli.py` - small commands used by the Slurm scripts.
+- `evaluation.py` - randomized opening prefixes, color pairing, Elo differences, intervals, and alarms.
+- `cli.py` - commands used by the Slurm scripts.
 
 ## Setup and tests
 
-Python 3.9 or newer is supported. Rules and search tests need only NumPy. Neural training additionally needs TensorFlow.
+Python 3.9 or newer is supported. Rules and search tests need only NumPy. Neural training uses Keras with the TensorFlow backend.
 
 ```bash
 python -m pip install -e ".[train,test]"
 pytest
 ```
 
-The tests independently regenerate legal moves, verify exact make/unmake restoration, exhaust action round trips, check symmetry algebra, compare alpha-beta with brute force, test neural perspective conversions, and lock down absolute-value PUCT behavior.
+The tests independently regenerate legal moves, verify exact make/unmake restoration, exhaust action round trips, check symmetry algebra, compare alpha-beta with brute force, verify 20 balanced tactical outcomes by exact solving, test neural perspective conversions, and lock down absolute-value PUCT behavior.
+
+The tactical report evaluates those 20 base positions and their 20 color-swapped partners. Sign accuracy is a secondary summary; retention alarms use the continuous mean of `predicted absolute value * exact absolute outcome`. Policy accuracy, category breakdowns, and exact color-swap consistency are reported separately.
 
 ## Training workflow
 
@@ -94,11 +94,11 @@ breakthrough-zero learn \
   --report results/phase4/learn-5x5-report.json
 ```
 
-Raw records preserve the position, player, legal relative actions, visit counts, priors, root value and visit total, search effort and time, played action, seed, and final absolute outcome. This is enough to rebuild alternative policy temperatures, value targets, and symmetry schemes.
+Raw records preserve the position, player, legal relative actions, visit counts, priors, root value and visit total, search effort and time, played action, and final absolute outcome. This is enough to rebuild alternative policy temperatures, value targets, and symmetry schemes.
 
 ## Fair evaluation
 
-Rated search has no Dirichlet noise. Each seeded opening prefix is played twice with agent colors reversed. Different search algorithms receive the same wall-clock move budget.
+Rated search has no Dirichlet noise. Each random opening prefix is played twice with agent colors reversed. Different search algorithms receive the same wall-clock move budget.
 
 ```bash
 breakthrough-zero arena \
@@ -112,7 +112,7 @@ Reports include game counts, failures, scores, Elo differences, 95% intervals, d
 
 ## HPC workflow
 
-The `scripts/slurm` directory contains deliberately direct jobs. The intended order is:
+The `scripts/slurm` directory contains the jobs in this order:
 
 1. `00_smoke.sbatch`
 2. `10_phase2_diagnostic.sbatch`
@@ -122,7 +122,7 @@ The `scripts/slurm` directory contains deliberately direct jobs. The intended or
 6. `50_phase5_arena5.sbatch`
 7. `60_phase6_8x8.sbatch`, only after the 5x5 gate passes
 
-For every submitted job, record the Git commit, command, configuration, seed, inputs, outputs, and Slurm job ID in `PHASE_LOG.md`. Inspect startup once and the completed output once; repeated monitoring is unnecessary.
+For every submitted job, record the Git commit, command, configuration, inputs, outputs, and Slurm job ID in `PHASE_LOG.md`.
 
 ## Documents and results
 

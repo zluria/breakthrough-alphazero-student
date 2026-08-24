@@ -19,5 +19,4 @@ conda run -n zur_env python -m breakthrough_zero.cli pretrain-network \
   --output checkpoints/pretrained-5x5.keras \
   --report results/phase4/pretraining-network-report.json \
   --epochs 8 \
-  --batch-size 128 \
-  --seed 20260811
+  --batch-size 128

@@ -1,7 +1,6 @@
-"""Readable PUCT with absolute Player-1 values."""
+"""PUCT with absolute Player-1 values."""
 
 import math
-import random
 import time
 
 import numpy as np
@@ -10,10 +9,9 @@ from .agents import rollout_outcome
 
 
 class RolloutEvaluator:
-    """Uniform legal priors and one seeded random rollout."""
+    """Uniform legal priors and one random rollout."""
 
-    def __init__(self, seed=0, tactical=False):
-        self.random = random.Random(seed)
+    def __init__(self, tactical=False):
         self.tactical = tactical
 
     def evaluate(self, game):
@@ -22,7 +20,7 @@ class RolloutEvaluator:
         priors = {}
         for action in actions:
             priors[action] = probability
-        value = rollout_outcome(game, self.random, self.tactical)
+        value = rollout_outcome(game, self.tactical)
         return priors, float(value)
 
 
@@ -60,7 +58,6 @@ class PUCTPlayer:
         evaluator,
         simulations=100,
         cpuct=1.5,
-        seed=0,
         move_time_s=None,
         dirichlet_alpha=None,
         dirichlet_fraction=0.25,
@@ -73,7 +70,6 @@ class PUCTPlayer:
         self.move_time_s = move_time_s
         self.dirichlet_alpha = dirichlet_alpha
         self.dirichlet_fraction = dirichlet_fraction
-        self.random = np.random.default_rng(seed)
 
     def child_q(self, parent, child):
         if child.visit_count == 0:
@@ -115,7 +111,7 @@ class PUCTPlayer:
             return
         actions = sorted(root.children)
         settings = [self.dirichlet_alpha] * len(actions)
-        noise = self.random.dirichlet(settings)
+        noise = np.random.dirichlet(settings)
         for index in range(len(actions)):
             child = root.children[actions[index]]
             child.prior = (

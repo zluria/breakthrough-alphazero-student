@@ -21,7 +21,7 @@ conda run -n zur_env python -m breakthrough_zero.cli pretrain-network \
   --data data/raw/pretraining-8x8-10000.jsonl.gz \
   --output checkpoints/pretrained-8x8.keras \
   --report results/phase6/pretraining-network-report.json \
-  --epochs 8 --batch-size 128 --seed 20260812
+  --epochs 8 --batch-size 128
 conda run -n zur_env python -m breakthrough_zero.cli learn \
   --config configs/learn-8x8.json \
   --run-dir results/phase6/learn-8x8 \

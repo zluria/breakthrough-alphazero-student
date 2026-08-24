@@ -20,11 +20,11 @@ from breakthrough_zero.symmetry import (
 
 
 try:
-    import tensorflow
+    import keras
 
-    TENSORFLOW_INSTALLED = True
+    KERAS_INSTALLED = True
 except ImportError:
-    TENSORFLOW_INSTALLED = False
+    KERAS_INSTALLED = False
 
 
 class RecordingNetwork:
@@ -93,8 +93,8 @@ class NeuralBoundaryTests(unittest.TestCase):
             self.assertEqual(back, action)
 
     def test_keras_save_load_preserves_predictions(self):
-        if not TENSORFLOW_INSTALLED:
-            self.skipTest("TensorFlow not installed")
+        if not KERAS_INSTALLED:
+            self.skipTest("Keras not installed")
         network = GameNetwork(5, 8, 1)
         planes = canonical_planes(self.game)
         policy = np.zeros((1, self.game.action_size), dtype=np.float32)
@@ -118,8 +118,8 @@ class NeuralBoundaryTests(unittest.TestCase):
         self.assertEqual(loaded_step, optimizer_step)
 
     def test_native_network_shapes_are_never_padded(self):
-        if not TENSORFLOW_INSTALLED:
-            self.skipTest("TensorFlow not installed")
+        if not KERAS_INSTALLED:
+            self.skipTest("Keras not installed")
         small = GameNetwork(5, 8, 1)
         standard = GameNetwork(8, 8, 1)
         self.assertEqual(small.model.input_shape, (None, 5, 5, 2))

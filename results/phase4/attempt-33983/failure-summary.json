@@ -1,0 +1,14 @@
+{
+  "job_id": 33983,
+  "commit": "3529154",
+  "status": "cancelled_for_tactical_gate_redesign",
+  "slurm_state": "CANCELLED",
+  "elapsed": "00:11:36",
+  "learning_rate": 0.00025,
+  "completed_iterations": 1,
+  "fresh_games": 64,
+  "fresh_positions": 762,
+  "examples_presented": 512,
+  "checkpoint_is_playable": false,
+  "reason": "The six-base-position binary tactical gate was too brittle to govern training. One marginal sign crossing changed paired accuracy by 16.7 percentage points. The run was stopped before redesigning the gate around 20 balanced, exactly solved base positions and a continuous mean signed value metric."
+}

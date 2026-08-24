@@ -1,4 +1,4 @@
-"""Small baseline agents written with ordinary Python control flow."""
+"""Baseline agents for comparison and position solving."""
 
 import math
 import random
@@ -8,21 +8,15 @@ from .game import PLAYER_1
 
 
 class RandomAgent:
-    def __init__(self, seed=0):
-        self.random = random.Random(seed)
-
     def choose_move(self, game):
         moves = game.legal_moves()
         if not moves:
             raise ValueError("position has no legal move")
-        return self.random.choice(moves)
+        return random.choice(moves)
 
 
 class TacticalRolloutAgent:
     """Choose a win, then a capture, then a random legal move."""
-
-    def __init__(self, seed=0):
-        self.random = random.Random(seed)
 
     def choose_move(self, game):
         moves = game.legal_moves()
@@ -42,22 +36,21 @@ class TacticalRolloutAgent:
                 captures.append(move)
 
         if captures:
-            return self.random.choice(captures)
-        return self.random.choice(moves)
+            return random.choice(captures)
+        return random.choice(moves)
 
 
-def rollout_outcome(game, random_generator, tactical=False):
+def rollout_outcome(game, tactical=False):
     """Play to the end and return 1 for Player 1 or -1 for Player 2."""
 
     state = game.clone()
     tactical_agent = None
     if tactical:
         tactical_agent = TacticalRolloutAgent()
-        tactical_agent.random = random_generator
 
     while state.status() is None:
         if tactical_agent is None:
-            move = random_generator.choice(state.legal_moves())
+            move = random.choice(state.legal_moves())
         else:
             move = tactical_agent.choose_move(state)
         state.make_move(move)
@@ -65,7 +58,7 @@ def rollout_outcome(game, random_generator, tactical=False):
 
 
 class AlphaBetaAgent:
-    """A readable alpha-beta player with absolute Player-1 scores."""
+    """An alpha-beta player with absolute Player-1 scores."""
 
     def __init__(self, depth=4, time_limit_s=None):
         if depth < 1:
@@ -177,7 +170,7 @@ def ordered_moves(game):
 
 
 def evaluate_position(game):
-    """A small material, progress, and mobility evaluation."""
+    """A material, progress, and mobility evaluation."""
 
     size = game.board_size
     player_1_rows = []
@@ -204,7 +197,7 @@ def evaluate_position(game):
 
 
 def solve_exact(game, cache=None):
-    """Solve a small position by trying every continuation."""
+    """Solve a position by trying every continuation."""
 
     if cache is None:
         cache = {}

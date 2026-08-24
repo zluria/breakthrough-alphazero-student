@@ -4,13 +4,14 @@ import unittest
 
 import numpy as np
 
-from breakthrough_zero.agents import RandomAgent
+from breakthrough_zero.agents import RandomAgent, solve_exact
 from breakthrough_zero.data import (
     play_self_play_game,
     read_records,
     state_from_record,
     write_records,
 )
+from breakthrough_zero.diagnostics import tactical_suite
 from breakthrough_zero.evaluation import (
     evaluate_pair,
     fit_elo_table,
@@ -44,7 +45,6 @@ def sample_record():
         "search_elapsed_s": 0.01,
         "played_action": actions[0],
         "final_outcome": 1,
-        "seed": 9,
     }
 
 
@@ -72,7 +72,7 @@ class DataTests(unittest.TestCase):
         )
 
     def test_replay_reports_actual_consumption(self):
-        replay = ReplayBuffer(3, 1)
+        replay = ReplayBuffer(3)
         replay.add([sample_record(), sample_record()], 0)
         replay.sample(4)
         metrics = replay.metrics(2)
@@ -82,14 +82,14 @@ class DataTests(unittest.TestCase):
 
     def test_dummy_evaluator_has_uniform_legal_policy_and_absolute_value(self):
         game = state_from_record(sample_record())
-        priors, value = RolloutEvaluator(12).evaluate(game)
+        priors, value = RolloutEvaluator().evaluate(game)
         self.assertEqual(set(priors), set(game.legal_actions()))
         self.assertEqual(len(set(priors.values())), 1)
         self.assertIn(value, (-1.0, 1.0))
 
     def test_self_play_records_keep_reconstructable_search_evidence(self):
-        player = PUCTPlayer(RolloutEvaluator(5), 2, 1.5, 5)
-        records = play_self_play_game(player, 5, 1, 7, 5, 1.0, 2)
+        player = PUCTPlayer(RolloutEvaluator(), 2, 1.5)
+        records = play_self_play_game(player, 5, 1, 7, 1.0, 2)
         self.assertGreater(len(records), 0)
         for record in records:
             self.assertIn(record["final_outcome"], (-1, 1))
@@ -103,41 +103,77 @@ class DataTests(unittest.TestCase):
 
     def test_first_iteration_tactical_decline_is_compared_with_actor(self):
         actor = {
-            "value_accuracy": 5 / 6,
+            "mean_signed_value": 0.30,
             "policy_accuracy": 1.0,
             "mean_color_swap_absolute_error": 0.0,
         }
         current = {
-            "value_accuracy": 4 / 6,
-            "policy_accuracy": 5 / 6,
+            "mean_signed_value": 0.20,
+            "policy_accuracy": 0.8,
             "mean_color_swap_absolute_error": 0.0,
         }
         alarms = tactical_decline_alarms(current, actor)
         self.assertEqual(len(alarms), 2)
-        self.assertIn("0.833 to 0.667", alarms[0])
+        self.assertIn("0.300 to 0.200", alarms[0])
+
+    def test_tactical_suite_has_twenty_balanced_exact_base_positions(self):
+        positions = tactical_suite()
+        self.assertEqual(len(positions), 40)
+
+        base_positions = []
+        by_name = {}
+        for position in positions:
+            by_name[position["name"]] = position
+            if not position["name"].endswith("_swapped"):
+                base_positions.append(position)
+        self.assertEqual(len(base_positions), 20)
+
+        positive = 0
+        negative = 0
+        categories = set()
+        for position in base_positions:
+            categories.add(position["category"])
+            if position["outcome"] == 1:
+                positive += 1
+            else:
+                negative += 1
+            exact = solve_exact(position["game"].clone())
+            self.assertEqual(exact, position["outcome"], position["name"])
+
+            swapped = by_name[position["name"] + "_swapped"]
+            self.assertEqual(swapped["outcome"], -position["outcome"])
+
+        self.assertEqual((positive, negative), (10, 10))
+        self.assertEqual(
+            categories,
+            {
+                "immediate wins",
+                "immediate threats requiring defense",
+                "forced wins and losses",
+                "material advantages",
+                "advanced passed pawns",
+            },
+        )
 
 
 class EvaluationTests(unittest.TestCase):
-    def test_random_openings_are_distinct_and_reproducible(self):
-        first = randomized_openings(5, 5, 1, 3, 8)
-        second = randomized_openings(5, 5, 1, 3, 8)
-        self.assertEqual(first, second)
+    def test_random_openings_are_distinct(self):
+        openings = randomized_openings(5, 5, 1, 3)
         unique = set()
-        for opening in first:
+        for opening in openings:
             unique.add(tuple(opening))
         self.assertEqual(len(unique), 5)
 
     def test_arena_pairs_every_opening_with_both_colors(self):
         report = evaluate_pair(
-            RandomAgent(1),
-            RandomAgent(2),
+            RandomAgent(),
+            RandomAgent(),
             "random-a",
             "random-b",
             3,
             2,
             5,
             1,
-            99,
         )
         self.assertEqual(report["games_requested"], 6)
         self.assertEqual(report["games_completed"], 6)

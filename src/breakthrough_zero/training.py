@@ -1,4 +1,4 @@
-"""The small PLAY, REPLAY, TRAIN loop."""
+"""The PLAY, REPLAY, TRAIN loop."""
 
 import hashlib
 import json
@@ -15,7 +15,7 @@ from .data import (
 )
 from .diagnostics import evaluate_tactical_suite
 from .evaluation import evaluate_pair
-from .neural import GameNetwork, NeuralBoundary, get_tensorflow, load_network
+from .neural import GameNetwork, NeuralBoundary, load_network
 from .puct import NeuralEvaluator, PUCTPlayer, RolloutEvaluator
 from .replay import ReplayBuffer, records_to_training_arrays
 
@@ -35,14 +35,11 @@ def generate_pretraining_data(config, output_path):
     if os.path.exists(output_path):
         raise FileExistsError("refusing to overwrite raw data: " + output_path)
 
-    evaluator = RolloutEvaluator(
-        config["seed"], config["tactical_rollouts"]
-    )
+    evaluator = RolloutEvaluator(config["tactical_rollouts"])
     search = PUCTPlayer(
         evaluator,
         config["simulations"],
         config["cpuct"],
-        config["seed"],
     )
     started = time.perf_counter()
     positions = 0
@@ -54,7 +51,6 @@ def generate_pretraining_data(config, output_path):
             config["board_size"],
             config["starting_rows"],
             game_index,
-            config["seed"] + game_index,
             config["temperature"],
             config["temperature_plies"],
             False,
@@ -77,7 +73,6 @@ def train_pretrained_network(
     output_path,
     epochs=8,
     batch_size=128,
-    seed=20260811,
     filters=48,
     residual_blocks=3,
 ):
@@ -96,8 +91,7 @@ def train_pretrained_network(
     for record in records:
         game_numbers.add(record["game_index"])
     game_numbers = np.array(sorted(game_numbers))
-    random_generator = np.random.default_rng(seed)
-    random_generator.shuffle(game_numbers)
+    np.random.shuffle(game_numbers)
     validation_game_count = max(1, len(game_numbers) // 10)
     validation_games = set(game_numbers[:validation_game_count])
 
@@ -118,12 +112,11 @@ def train_pretrained_network(
     validation_values = validation[2]
     validation_conversion = validation[3]
 
-    order = random_generator.permutation(len(inputs))
+    order = np.random.permutation(len(inputs))
     inputs = inputs[order]
     policies = policies[order]
     values = values[order]
 
-    get_tensorflow().keras.utils.set_random_seed(seed)
     network = GameNetwork(board_size, filters, residual_blocks)
     validation_data = (
         validation_inputs,
@@ -185,16 +178,23 @@ def policy_kl(network, inputs, targets):
     return float(np.mean(np.sum(rows, axis=1)))
 
 
-def tactical_decline_alarms(current, actor, tolerance=0.10):
+def tactical_decline_alarms(
+    current,
+    actor,
+    value_tolerance=0.05,
+    policy_tolerance=0.10,
+):
     alarms = []
-    checks = [
-        ("value_accuracy", "tactical value accuracy"),
-        ("policy_accuracy", "tactical policy accuracy"),
-    ]
-    for name, label in checks:
-        if current[name] + tolerance < actor[name]:
-            text = "%s declined from %.3f to %.3f"
-            alarms.append(text % (label, actor[name], current[name]))
+    current_value = current["mean_signed_value"]
+    actor_value = actor["mean_signed_value"]
+    if current_value + value_tolerance < actor_value:
+        text = "tactical mean signed value declined from %.3f to %.3f"
+        alarms.append(text % (actor_value, current_value))
+    current_policy = current["policy_accuracy"]
+    actor_policy = actor["policy_accuracy"]
+    if current_policy + policy_tolerance < actor_policy:
+        text = "tactical policy accuracy declined from %.3f to %.3f"
+        alarms.append(text % (actor_policy, current_policy))
     if current["mean_color_swap_absolute_error"] > 0.00001:
         alarms.append("color-swap consistency invariant failed")
     return alarms
@@ -209,14 +209,13 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
     if os.path.exists(metric_path):
         raise FileExistsError("choose a fresh run directory: " + run_dir)
 
-    get_tensorflow().keras.utils.set_random_seed(config["seed"])
     if initial_checkpoint is None:
         network = GameNetwork(config["board_size"])
     else:
         network = load_network(initial_checkpoint)
     network.model.optimizer.learning_rate.assign(config["learning_rate"])
 
-    replay = ReplayBuffer(config["replay_capacity"], config["seed"])
+    replay = ReplayBuffer(config["replay_capacity"])
     total_fresh_positions = 0
     total_examples_presented = 0
     run_started = time.perf_counter()
@@ -233,7 +232,6 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
             NeuralEvaluator(boundary),
             config["simulations"],
             config["cpuct"],
-            config["seed"] + iteration,
             None,
             config["dirichlet_alpha"],
             config["dirichlet_fraction"],
@@ -246,7 +244,6 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
                 config["board_size"],
                 config["starting_rows"],
                 game_index,
-                config["seed"] + game_index,
                 config["temperature"],
                 config["temperature_plies"],
                 True,
@@ -333,13 +330,11 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
             NeuralEvaluator(NeuralBoundary(network)),
             min(24, config["simulations"]),
             config["cpuct"],
-            config["seed"] + iteration,
         )
         actor_agent = PUCTPlayer(
             NeuralEvaluator(NeuralBoundary(actor_network)),
             min(24, config["simulations"]),
             config["cpuct"],
-            config["seed"] + iteration + 100000,
         )
 
         arena = evaluate_pair(
@@ -351,7 +346,6 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
             2 if config["board_size"] == 5 else 4,
             config["board_size"],
             config["starting_rows"],
-            config["seed"] + iteration,
         )
         arena_summary = dict(arena)
         del arena_summary["games"]

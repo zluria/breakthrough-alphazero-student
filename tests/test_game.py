@@ -60,7 +60,7 @@ class GameRulesTests(unittest.TestCase):
         self.assertEqual(standard.action_size, 192)
 
     def test_generator_matches_independent_reference_during_games(self):
-        random_generator = random.Random(20260811)
+        random_generator = random.Random()
         for size, rows in ((5, 1), (8, 2)):
             for unused_game in range(20):
                 game = Breakthrough(size, rows)
@@ -69,7 +69,7 @@ class GameRulesTests(unittest.TestCase):
                     game.make_move(random_generator.choice(game.legal_moves()))
 
     def test_make_unmake_restores_every_field_exactly(self):
-        random_generator = random.Random(17)
+        random_generator = random.Random()
         game = Breakthrough(5, 1)
         for unused_move in range(40):
             if game.status() is not None:
@@ -114,7 +114,7 @@ class GameRulesTests(unittest.TestCase):
         self.assertEqual(game.player_to_move, PLAYER_1)
 
     def test_policy_round_trip_for_every_legal_move_in_random_games(self):
-        random_generator = random.Random(4)
+        random_generator = random.Random()
         for size, rows in ((5, 1), (8, 2)):
             game = Breakthrough(size, rows)
             while game.status() is None:

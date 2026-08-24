@@ -1,4 +1,4 @@
-"""Student-readable AlphaZero components for Breakthrough."""
+"""AlphaZero components for Breakthrough."""
 
 from .game import Breakthrough, PLAYER_1, PLAYER_2
 

@@ -64,16 +64,8 @@ class NeuralBoundary:
         return {"priors": priors, "value": value}
 
 
-def get_tensorflow():
-    try:
-        import tensorflow as tf
-    except ImportError:
-        raise RuntimeError("TensorFlow is required for neural training")
-    return tf
-
-
 class GameNetwork:
-    """A small native-size Keras policy and value network."""
+    """A native-size Keras policy and value network."""
 
     def __init__(
         self,
@@ -96,8 +88,8 @@ class GameNetwork:
             self.model = model
 
     def build_model(self):
-        tf = get_tensorflow()
-        keras = tf.keras
+        import keras
+
         regularizer = keras.regularizers.l2(self.l2_strength)
 
         inputs = keras.Input(
@@ -203,7 +195,8 @@ class GameNetwork:
 
 
 def load_network(path):
-    tf = get_tensorflow()
-    model = tf.keras.models.load_model(path)
+    import keras
+
+    model = keras.models.load_model(path)
     board_size = int(model.input_shape[1])
     return GameNetwork(board_size, model=model)
