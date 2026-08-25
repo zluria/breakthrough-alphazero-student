@@ -1,7 +1,7 @@
 {
   "board_size": 8,
   "starting_rows": 2,
-  "iterations": 40,
+  "iterations": 200,
   "games_per_iteration": 256,
   "parallel_games": 32,
   "search_schedule": [
@@ -16,7 +16,7 @@
       "fast_simulations": 24
     },
     {
-      "until_iteration": 40,
+      "until_iteration": 200,
       "full_simulations": 256,
       "fast_simulations": 32
     }

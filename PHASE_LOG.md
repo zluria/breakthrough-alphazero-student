@@ -105,3 +105,17 @@ under the unchanged recipe.
   reversed. Rated search has 64 simulations, no Dirichlet noise, and no move
   sampling. A 55% score installs a new best checkpoint. Three consecutive
   checks without a new best stop the run; 50 hours is the hard compute budget.
+- Smoke job 34025 failed before importing the project because `pytest` is not
+  installed in the established TensorFlow environment. The launchers now use
+  the standard-library `unittest` runner; no package was installed.
+- Corrected smoke job 34026 ran commit `a04818a` on an RTX 2080 SUPER, passed all
+  39 tests, and completed 32 batched games plus replay training in 17 seconds.
+  Its deliberately tiny 8/2-simulation setting produced 0 Player-1 wins.
+- Diagnostic array 34027 separated that result from batching. Sequential 8/2
+  search also produced 0-32, while batched 64-simulation search produced 19-13.
+  Actual first-stage job 34029 then used 128/16 simulations and produced a
+  healthy 17-15 split, 529 full-search records, 1,476 fast turns, and a complete
+  update in 82.7 seconds.
+- Because measured batching throughput would finish 40 iterations far below the
+  compute budget, the iteration count is only a generous ceiling. The 50-hour
+  limit and three consecutive failed strength checks are the operative stops.
