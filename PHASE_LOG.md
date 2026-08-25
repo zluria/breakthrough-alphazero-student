@@ -126,3 +126,10 @@ under the unchanged recipe.
   deployment and only read by the loop; all new records, checkpoints, metrics,
   and matches are written
   under that deployment's `results/phase8/serious-az-8x8` directory.
+- The experiment was subsequently changed to use all 50 hours even if strength
+  checks are flat. Running job 34030 was left untouched. Dependency job 34052,
+  from commit `c379293`, will start only if 34030 exits successfully. It exits
+  immediately if the budget is already exhausted; otherwise it restores the
+  latest checkpoint, the best strength-reference checkpoint, and the seven most
+  recent replay tranches, then trains for exactly the remaining budget without
+  the three-stall stop. Five-hour paired matches continue in the second segment.
