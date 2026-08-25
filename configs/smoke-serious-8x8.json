@@ -1,0 +1,28 @@
+{
+  "board_size": 8,
+  "starting_rows": 2,
+  "iterations": 1,
+  "games_per_iteration": 32,
+  "parallel_games": 32,
+  "search_schedule": [
+    {
+      "until_iteration": 1,
+      "full_simulations": 8,
+      "fast_simulations": 2
+    }
+  ],
+  "full_search_probability": 0.25,
+  "cpuct": 1.5,
+  "batch_size": 32,
+  "training_reuse": 1.0,
+  "learning_rate": 0.00025,
+  "replay_capacity": 1000,
+  "validation_fraction": 0.1,
+  "validation_capacity": 200,
+  "validation_sample_size": 32,
+  "random_reflection": true,
+  "dirichlet_alpha": 0.2,
+  "dirichlet_fraction": 0.25,
+  "temperature": 1.0,
+  "temperature_plies": 4
+}
