@@ -40,7 +40,6 @@
   "strength_openings": 20,
   "strength_prefix_plies": 6,
   "strength_score_required": 0.55,
-  "max_strength_stalls": 3,
   "max_hours": 50,
   "replay_seed_paths": [
     "results/phase6/learn-8x8/raw/iteration-0000.jsonl.gz",

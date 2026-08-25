@@ -63,15 +63,16 @@ The opening prefixes provide diversity. Once a rated position begins, both
 agents use deterministic 64-simulation PUCT: no Dirichlet noise and no move
 sampling. The match report preserves every opening and complete game.
 
-A score of at least 55% makes the current checkpoint the new reference and
-resets the stall count. A lower score leaves the reference unchanged. Three
-consecutive checks without a new reference stop training. This is deliberately
-a repeated practical rule, not a claim that one 40-game match proves a small
-strength difference.
+A score of at least 55% makes the current checkpoint the new reference. A lower
+score leaves the reference unchanged. The 40-game result is a practical progress
+measurement, not a claim that a small strength difference has been proved.
 
-The run also stops after 50 training hours. Every iteration writes its raw
-records, checkpoint, losses, throughput, search counts, and elapsed time before
-either stopping condition is considered. The final report identifies both the
+The experiment runs for 50 hours even if several matches are flat. The first
+submitted segment still contains its original three-stall stop rule. If that
+rule fires, a queued continuation loads its latest network, best match reference,
+and recent replay window, then uses the rest of the 50-hour budget without the
+stall stop. Every iteration writes its raw records, checkpoint, losses,
+throughput, search counts, and elapsed time. Each report identifies both the
 latest checkpoint and the best checkpoint selected by the strength checks.
 
 ## Why this loop

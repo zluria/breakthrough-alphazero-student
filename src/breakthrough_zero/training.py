@@ -256,10 +256,13 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
     replay_seed_records = 0
     for path in config.get("replay_seed_paths", []):
         old_records = read_records(path)
-        replay.add(old_records)
-        replay_seed_records += len(old_records)
+        training_old_records = []
         for record in old_records:
+            if not record.get("validation", False):
+                training_old_records.append(record)
             next_game_index = max(next_game_index, record["game_index"] + 1)
+        replay.add(training_old_records)
+        replay_seed_records += len(training_old_records)
 
     validation_records = []
     run_started = time.perf_counter()
@@ -273,7 +276,10 @@ def run_learning_loop(config, run_dir, initial_checkpoint=None):
     next_strength_match_s = strength_interval_s
     strength_stalls = 0
     matches_completed = 0
-    best_checkpoint = initial_checkpoint
+    best_checkpoint = config.get(
+        "strength_reference_checkpoint",
+        initial_checkpoint,
+    )
     best_network = None
     if strength_interval_s > 0:
         if initial_checkpoint is None:
