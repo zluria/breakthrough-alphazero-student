@@ -14,7 +14,7 @@ export PYTHONPATH="$PROJECT_DIR/src"
 
 STARTING_CHECKPOINT=results/phase6/learn-8x8/checkpoints/iteration-0005.keras
 mkdir -p results/slurm results/phase8
-conda run -n zur_env python -m pytest
+conda run -n zur_env python -m unittest discover -s tests -v
 conda run -n zur_env python -m breakthrough_zero.cli learn \
   --config configs/smoke-serious-8x8.json \
   --run-dir "results/phase8/smoke-$SLURM_JOB_ID" \
