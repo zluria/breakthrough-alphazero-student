@@ -25,13 +25,14 @@ class ReplayBuffer:
         return random.sample(self.data, count)
 
 
-def records_to_training_arrays(records):
+def records_to_training_arrays(records, random_reflection=False):
     """Build neural inputs and targets from recorded search positions.
 
-    Each record contributes its original position and its left-right reflection.
-    Player swapping would duplicate the same mover-relative input and targets.
-    Policy targets are normalized MCTS visit counts, and absolute outcomes are
-    converted to the value head's mover-relative convention.
+    Pretraining can materialize both left-right versions of every record. During
+    the AlphaZero loop, ``random_reflection`` chooses just one version whenever
+    a record is sampled. That gives continuing augmentation without presenting
+    the same position twice in one batch. Player swapping would duplicate the
+    same mover-relative input and targets.
     """
 
     inputs = []
@@ -48,7 +49,13 @@ def records_to_training_arrays(records):
             action = record["legal_actions"][index]
             source_counts[action] = record["visit_counts"][index]
 
-        for symmetry in [(False, False), (False, True)]:
+        if random_reflection:
+            reflect = bool(np.random.randint(2))
+            symmetries = [(False, reflect)]
+        else:
+            symmetries = [(False, False), (False, True)]
+
+        for symmetry in symmetries:
             new_game = transform_state(game, symmetry)
             policy = np.zeros(new_game.action_size, dtype=np.float32)
             for action in source_counts:

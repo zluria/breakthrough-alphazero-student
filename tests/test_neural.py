@@ -37,6 +37,12 @@ class RecordingNetwork:
         self.inputs.append(planes.copy())
         return np.linspace(-1, 1, self.action_size), self.value
 
+    def predict_batch(self, planes):
+        predictions = []
+        for position in planes:
+            predictions.append(self.predict_raw(position))
+        return predictions
+
 
 class NeuralBoundaryTests(unittest.TestCase):
     def setUp(self):
@@ -68,6 +74,16 @@ class NeuralBoundaryTests(unittest.TestCase):
         unused_priors, second_value = boundary.evaluate(swapped)
         self.assertAlmostEqual(first_value, 0.35)
         self.assertAlmostEqual(second_value, -0.35)
+
+    def test_boundary_batches_positions_in_one_network_call(self):
+        swapped = transform_state(self.game, (True, False))
+        network = RecordingNetwork(self.game.action_size, 0.35)
+        evaluations = NeuralBoundary(network).evaluate_batch(
+            [self.game, swapped]
+        )
+        self.assertEqual(len(network.inputs), 2)
+        self.assertAlmostEqual(evaluations[0][1], 0.35)
+        self.assertAlmostEqual(evaluations[1][1], -0.35)
 
     def test_all_absolute_targets_convert_relative(self):
         boundary = NeuralBoundary()

@@ -25,6 +25,12 @@ class RolloutEvaluator:
         value = rollout_outcome(game)
         return priors, float(value)
 
+    def evaluate_batch(self, games):
+        evaluations = []
+        for game in games:
+            evaluations.append(self.evaluate(game))
+        return evaluations
+
 
 class PUCTNode:
     """Search statistics for one state reached through its parent's action.
@@ -119,65 +125,117 @@ class PUCTPlayer:
             )
 
     def search(self, game, add_root_noise=False):
-        if game.status() is not None:
-            raise ValueError("cannot search a terminal position")
+        results = self.search_batch(
+            [game],
+            [self.simulations],
+            [add_root_noise],
+        )
+        return results[0]
 
-        if self.move_time_s is None:
-            deadline = math.inf
-        else:
-            deadline = time.perf_counter() + self.move_time_s
+    def evaluate_batch(self, games):
+        if hasattr(self.evaluator, "evaluate_batch"):
+            return self.evaluator.evaluate_batch(games)
+        evaluations = []
+        for game in games:
+            evaluations.append(self.evaluator.evaluate(game))
+        return evaluations
 
-        root = PUCTNode(1.0)
-        priors, root_value = self.evaluator.evaluate(game)
-        root.q = root_value
-        root.expand(priors)
-        if add_root_noise:
-            self.add_root_noise(root)
+    def search_batch(self, games, simulation_counts, add_root_noise):
+        """Search independent roots together and batch their leaf evaluations.
 
-        completed = 0
-        while completed < self.simulations and time.perf_counter() < deadline:
-            # All simulated moves are made on a clone, leaving the caller's
-            # position unchanged.
-            state = game.clone()
-            node = root
+        Tree selection and backup still happen separately for every game. Only
+        the neural evaluations are combined, which leaves the PUCT mathematics
+        unchanged while giving the GPU a useful batch of positions.
+        """
 
-            # Selection follows PUCT until it reaches a terminal state or a
-            # previously unvisited child.
-            while node.children and state.status() is None:
-                action, node = self.select_child(node, state.player_to_move)
-                state.make_move(state.decode(action))
-                if node.visits == 0:
-                    break
+        if len(games) != len(simulation_counts):
+            raise ValueError("each game needs a simulation count")
+        if len(games) != len(add_root_noise):
+            raise ValueError("each game needs a root-noise setting")
+        if not games:
+            return []
+        for index in range(len(games)):
+            if games[index].status() is not None:
+                raise ValueError("cannot search a terminal position")
+            if simulation_counts[index] < 1:
+                raise ValueError("simulations must be positive")
 
-            if state.status() is not None:
-                value = float(state.status())
-                leaf_priors = None
-            else:
-                # The leaf evaluation supplies both the value to back up and the
-                # policy priors used when this leaf is visited again.
-                leaf_priors, value = self.evaluator.evaluate(state)
-            # Backing up first makes the leaf's first Q exactly its evaluation;
-            # newly expanded children then inherit that value.
-            self.backup(node, value)
-            if leaf_priors is not None:
-                node.expand(leaf_priors)
-            completed += 1
+        started = time.perf_counter()
+        roots = []
+        root_evaluations = self.evaluate_batch(games)
+        for index in range(len(games)):
+            root = PUCTNode(1.0)
+            priors, root_value = root_evaluations[index]
+            root.q = root_value
+            root.expand(priors)
+            if add_root_noise[index]:
+                self.add_root_noise(root)
+            roots.append(root)
 
-        visit_counts = {}
-        priors = {}
-        q_values = {}
-        for action in root.children:
-            child = root.children[action]
-            visit_counts[action] = child.visits
-            priors[action] = child.prior
-            q_values[action] = child.q
-        return {
-            "visit_counts": visit_counts,
-            "priors": priors,
-            "q_values": q_values,
-            "root_visits": root.visits,
-            "root_q": root.q,
-        }
+        completed = [0] * len(games)
+        while True:
+            states = []
+            nodes = []
+            any_search_active = False
+
+            for index in range(len(games)):
+                if completed[index] >= simulation_counts[index]:
+                    continue
+                if self.move_time_s is not None:
+                    if time.perf_counter() - started >= self.move_time_s:
+                        continue
+                any_search_active = True
+
+                # All simulated moves are made on a clone, leaving the real
+                # self-play position unchanged.
+                state = games[index].clone()
+                node = roots[index]
+                while node.children and state.status() is None:
+                    action, node = self.select_child(node, state.player_to_move)
+                    state.make_move(state.decode(action))
+                    if node.visits == 0:
+                        break
+
+                if state.status() is not None:
+                    self.backup(node, float(state.status()))
+                else:
+                    states.append(state)
+                    nodes.append(node)
+                completed[index] += 1
+
+            if not any_search_active:
+                break
+
+            if states:
+                leaf_evaluations = self.evaluate_batch(states)
+                for index in range(len(states)):
+                    leaf_priors, value = leaf_evaluations[index]
+                    node = nodes[index]
+                    # Backup first gives this leaf its evaluated Q. Children
+                    # expanded afterwards inherit that first-play value.
+                    self.backup(node, value)
+                    node.expand(leaf_priors)
+
+        results = []
+        for root in roots:
+            visit_counts = {}
+            priors = {}
+            q_values = {}
+            for action in root.children:
+                child = root.children[action]
+                visit_counts[action] = child.visits
+                priors[action] = child.prior
+                q_values[action] = child.q
+            results.append(
+                {
+                    "visit_counts": visit_counts,
+                    "priors": priors,
+                    "q_values": q_values,
+                    "root_visits": root.visits,
+                    "root_q": root.q,
+                }
+            )
+        return results
 
     def choose_move(self, game, add_root_noise=False):
         result = self.search(game, add_root_noise)

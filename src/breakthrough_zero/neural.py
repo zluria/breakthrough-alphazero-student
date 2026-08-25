@@ -63,21 +63,35 @@ class NeuralBoundary:
         return float(absolute_value) * player_to_move
 
     def evaluate(self, game):
-        logits, relative_value = self.network.predict_raw(canonical_planes(game))
-        logits = np.array(logits).reshape(-1)
-        if logits.shape != (game.action_size,):
-            raise ValueError("network returned the wrong policy shape")
+        return self.evaluate_batch([game])[0]
 
-        actions = game.legal_actions()
-        legal_mask = np.zeros(game.action_size, dtype=np.bool_)
-        for action in actions:
-            legal_mask[action] = True
-        probabilities = masked_softmax(logits, legal_mask)
-        priors = {}
-        for action in actions:
-            priors[action] = float(probabilities[action])
-        value = self.absolute_value(relative_value, game.player_to_move)
-        return priors, value
+    def evaluate_batch(self, games):
+        """Evaluate several independent leaves in one neural-network call."""
+
+        planes = []
+        for game in games:
+            planes.append(canonical_planes(game))
+        predictions = self.network.predict_batch(planes)
+
+        evaluations = []
+        for index in range(len(games)):
+            game = games[index]
+            logits, relative_value = predictions[index]
+            logits = np.array(logits).reshape(-1)
+            if logits.shape != (game.action_size,):
+                raise ValueError("network returned the wrong policy shape")
+
+            actions = game.legal_actions()
+            legal_mask = np.zeros(game.action_size, dtype=np.bool_)
+            for action in actions:
+                legal_mask[action] = True
+            probabilities = masked_softmax(logits, legal_mask)
+            priors = {}
+            for action in actions:
+                priors[action] = float(probabilities[action])
+            value = self.absolute_value(relative_value, game.player_to_move)
+            evaluations.append((priors, value))
+        return evaluations
 
 
 class GameNetwork:
@@ -164,12 +178,21 @@ class GameNetwork:
         return model
 
     def predict_raw(self, planes):
-        # Keras expects a batch dimension even when evaluating one position.
-        batch = np.array(planes, dtype=np.float32)[None, ...]
+        return self.predict_batch([planes])[0]
+
+    def predict_batch(self, planes):
+        """Predict several board positions together so the GPU stays busy."""
+
+        batch = np.array(planes, dtype=np.float32)
         prediction = self.model(batch, training=False)
-        logits = np.array(prediction["policy"])[0]
-        value = float(np.array(prediction["value"])[0, 0])
-        return logits, value
+        policy_batch = np.array(prediction["policy"])
+        value_batch = np.array(prediction["value"])
+        results = []
+        for index in range(len(batch)):
+            logits = policy_batch[index]
+            value = float(value_batch[index, 0])
+            results.append((logits, value))
+        return results
 
     def fit(
         self,

@@ -23,6 +23,25 @@ class HeuristicEvaluator:
         return priors, evaluate_position(game)
 
 
+class BatchEvaluator:
+    def __init__(self):
+        self.batch_sizes = []
+
+    def evaluate(self, game):
+        return self.evaluate_batch([game])[0]
+
+    def evaluate_batch(self, games):
+        self.batch_sizes.append(len(games))
+        evaluations = []
+        for game in games:
+            actions = game.legal_actions()
+            priors = {}
+            for action in actions:
+                priors[action] = 1 / len(actions)
+            evaluations.append((priors, 0.0))
+        return evaluations
+
+
 class PUCTTests(unittest.TestCase):
     def test_backup_preserves_absolute_sign(self):
         root = PUCTNode(1.0)
@@ -91,6 +110,19 @@ class PUCTTests(unittest.TestCase):
         self.assertEqual(result["root_visits"], 8)
         self.assertEqual(set(result["priors"]), set(game.legal_actions()))
         self.assertEqual(set(result["q_values"]), set(game.legal_actions()))
+
+    def test_batch_search_combines_independent_leaf_evaluations(self):
+        games = [Breakthrough(5, 1), Breakthrough(5, 1)]
+        evaluator = BatchEvaluator()
+        results = PUCTPlayer(evaluator, 4).search_batch(
+            games,
+            [2, 4],
+            [False, False],
+        )
+        self.assertEqual(results[0]["root_visits"], 2)
+        self.assertEqual(results[1]["root_visits"], 4)
+        self.assertIn(2, evaluator.batch_sizes)
+        self.assertEqual(games[0].to_rows(), Breakthrough(5, 1).to_rows())
 
 
 if __name__ == "__main__":

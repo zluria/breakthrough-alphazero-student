@@ -98,6 +98,111 @@ def play_self_play_game(
     return records
 
 
+def play_parallel_self_play_games(
+    search,
+    game_count,
+    first_game_index,
+    board_size,
+    starting_rows,
+    full_simulations,
+    fast_simulations,
+    full_search_probability,
+    temperature=1.0,
+    temperature_plies=8,
+):
+    """Play several games together so their neural leaves form GPU batches.
+
+    A full search supplies a policy target and receives root noise. A fast
+    search only chooses a move. Its position is not saved, because a small
+    search should not teach the policy head as if it were a strong target.
+    Every saved position still receives the final outcome of its actual game.
+    """
+
+    if game_count < 1:
+        raise ValueError("game count must be positive")
+    if full_search_probability <= 0 or full_search_probability > 1:
+        raise ValueError("full search probability must be in (0, 1]")
+
+    games = []
+    game_records = []
+    plies = []
+    for unused_game in range(game_count):
+        games.append(Breakthrough(board_size, starting_rows))
+        game_records.append([])
+        plies.append(0)
+
+    active = list(range(game_count))
+    full_searches = 0
+    fast_searches = 0
+    while active:
+        active_games = []
+        simulation_counts = []
+        use_root_noise = []
+        full_search = []
+
+        for game_index in active:
+            active_games.append(games[game_index])
+            is_full = np.random.random() < full_search_probability
+            full_search.append(is_full)
+            if is_full:
+                simulation_counts.append(full_simulations)
+                use_root_noise.append(True)
+                full_searches += 1
+            else:
+                simulation_counts.append(fast_simulations)
+                use_root_noise.append(False)
+                fast_searches += 1
+
+        results = search.search_batch(
+            active_games,
+            simulation_counts,
+            use_root_noise,
+        )
+        still_active = []
+        for batch_index in range(len(active)):
+            game_index = active[batch_index]
+            game = games[game_index]
+            result = results[batch_index]
+            if plies[game_index] < temperature_plies:
+                move_temperature = temperature
+            else:
+                move_temperature = 0.0
+            action = choose_action(result, move_temperature)
+
+            if full_search[batch_index]:
+                record = make_record(
+                    game,
+                    result,
+                    first_game_index + game_index,
+                )
+                game_records[game_index].append(record)
+
+            game.make_move(game.decode(action))
+            plies[game_index] += 1
+            if game.status() is None:
+                still_active.append(game_index)
+            else:
+                for record in game_records[game_index]:
+                    record["final_outcome"] = game.status()
+        active = still_active
+
+    records = []
+    player_1_wins = 0
+    for game_index in range(game_count):
+        records.extend(game_records[game_index])
+        if games[game_index].status() == 1:
+            player_1_wins += 1
+    return {
+        "records": records,
+        "games": game_count,
+        "positions": len(records),
+        "player1_wins": player_1_wins,
+        "mean_game_length": sum(plies) / game_count,
+        "full_searches": full_searches,
+        "fast_searches": fast_searches,
+    }
+
+
 def write_records(path, records):
     directory = os.path.dirname(str(path))
     if directory:

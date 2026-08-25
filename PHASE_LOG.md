@@ -78,11 +78,30 @@
 - The accepted iteration-19 checkpoint scored 100% against random, 66% against alpha-beta, 86% against rollout PUCT, 65% against the pretrained checkpoint, and 63% against iteration 0. The corresponding 95% Wilson intervals all exclude 50%.
 - It scored 46% against the rejected continuation iteration 2, with a 95% interval of 36.6%-55.7%. This is a statistical tie. The continuation remains rejected by the predetermined tactical-retention condition, not by a claim that it plays worse.
 
-## Phase 6: native 8x8 transfer - running
+## Phase 6: native 8x8 transfer - complete
 
 - Slurm job 33995 passed the entire native 8x8 smoke path in 34 seconds: two rollout-PUCT games, 40 positions, a tiny network training step, checkpoint save/load, and a four-game paired arena. The 2-2 arena score is a plumbing check, not a strength measurement.
-- Full Slurm job 33996 starts from a new native 8x8 network and native 8x8 dummy-PUCT data. It does not reuse 5x5 positions or weights. The configured stages are 10,000 dummy-PUCT games, neural pretraining, six AlphaZero iterations, and paired arenas against random, alpha-beta, rollout PUCT, and the pretrained 8x8 network.
+- Full Slurm job 33996 started from a new native 8x8 network and native 8x8 dummy-PUCT data. It did not reuse 5x5 positions or weights. The 10,000 games produced 421,561 positions in 24 hours 40 minutes. Six AlphaZero iterations then produced 192 neural self-play games.
+- The iteration-5 network scored 60-0 against random, 60-0 against rollout PUCT, 52-8 against its pretrained initializer, and 2-58 against alpha-beta in paired 0.1-second games. It learned substantially, but 192 neural games were not enough to approach alpha-beta.
 
-## Phase 7 - pending
+## Phase 7 - replaced by the measured scaling check
 
-The limited two-factor extension remains pending. Native 8x8 claims remain pending until job 33996 and its paired arenas complete.
+The 1,000-game pretraining subset produced 42,182 positions. With the same
+eight-epoch recipe, its network lost 24-76 to the 10,000-game pretrained network
+in 100 paired games. Its validation loss also began worsening after about three
+epochs. This establishes that the small corpus is useful but not 90% as good
+under the unchanged recipe.
+
+## Phase 8: serious native 8x8 AlphaZero continuation - ready
+
+- Continue from the accepted phase-6 iteration-5 checkpoint and seed replay
+  with its six existing neural self-play tranches.
+- Batch leaf inference across 32 games and use progressive playout-cap
+  randomization: 128/16, 192/24, then 256/32 full/fast simulations.
+- Generate 256 games per iteration, retain 25,000 recent training positions,
+  hold out 5% of whole games, augment sampled records by a random reflection,
+  and perform two sample presentations per new training position.
+- Every five elapsed hours, play 20 distinct six-ply openings twice with colors
+  reversed. Rated search has 64 simulations, no Dirichlet noise, and no move
+  sampling. A 55% score installs a new best checkpoint. Three consecutive
+  checks without a new best stop the run; 50 hours is the hard compute budget.

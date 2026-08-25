@@ -39,4 +39,9 @@ Each comparison in Slurm job 33994 used 50 unseeded four-ply opening prefixes, p
 
 Slurm job 33986 completed all 20 configured 5x5 iterations in 2 hours 4 minutes. It generated 1,280 self-play games and 16,704 positions. The accepted iteration-19 checkpoint ended with tactical mean signed value 0.8841, 95% value-sign accuracy, 100% tactical policy accuracy, and zero color-swap error. Its SHA-256 is `71dccde76f7cf9274d63f084e27827563d480883ff557fa1ea147c393395355f`.
 
-Native 8x8 smoke job 33995 completed successfully. Full from-scratch native 8x8 job 33996 is running; no 8x8 strength result is reported before it finishes.
+Native 8x8 smoke job 33995 completed successfully. Full job 33996 generated
+10,000 rollout-PUCT games and 421,561 raw positions in 24 hours 40 minutes, then
+completed six neural self-play iterations containing 192 games. The final
+checkpoint scored 60-0 against random, 60-0 against rollout PUCT, 52-8 against
+the pretrained network, and 2-58 against alpha-beta at 0.1 seconds per move.
+These results establish real learning but also a large remaining strength gap.

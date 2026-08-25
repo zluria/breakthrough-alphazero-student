@@ -46,7 +46,8 @@ If you change the encoding or value convention, start with `tests/test_neural.py
 - `data.py` - gzip JSONL records with boards, visit counts, and outcomes.
 - `replay.py` - a bounded list with left-right reflection augmentation.
 - `diagnostics.py` - balanced alpha-beta supervision and exact tactical value checks.
-- `training.py` - assignment pretraining and synchronous `PLAY -> REPLAY -> TRAIN` iterations.
+- `training.py` - assignment pretraining, batched self-play, replay training,
+  progressive search, and periodic strength checks.
 - `evaluation.py` - randomized opening prefixes, color pairing, scores, and intervals.
 - `cli.py` - commands used by the Slurm scripts.
 
@@ -107,6 +108,11 @@ breakthrough-zero gui \
 
 Raw records preserve the position, player, legal relative actions, visit counts, and final absolute outcome. That is enough to reconstruct the policy and value targets.
 
+The main 8x8 continuation uses the more compute-efficient loop described in
+`TRAINING_LOOP.md`. It batches leaves from 32 simultaneous games, records only
+full-search turns, increases search effort over time, trains in proportion to
+new data, and checks playing strength every five hours.
+
 ## Fair evaluation
 
 Rated search has no Dirichlet noise. Each random opening prefix is played twice with agent colors reversed. Different search algorithms receive the same wall-clock move budget.
@@ -132,12 +138,14 @@ The `scripts/slurm` directory contains the jobs in this order:
 5. `40_phase4_learn5.sbatch`
 6. `50_phase5_arena5.sbatch`
 7. `60_phase6_8x8.sbatch`, only after the 5x5 gate passes
+8. `80_phase8_serious_8x8.sbatch`, the 50-hour native 8x8 continuation
 
 For every submitted job, record the Git commit, command, configuration, inputs, outputs, and Slurm job ID in `PHASE_LOG.md`.
 
 ## Documents and results
 
 - `ASSIGNMENT_REQUIREMENTS.md` is the formal compliance checklist and conflict record.
+- `TRAINING_LOOP.md` specifies the main 8x8 AlphaZero algorithm and stop rules.
 - `PHASE_LOG.md` records phase gates and reproducibility metadata.
 - `RESULTS.md` is the human-readable evaluation and diagnostic summary.
 - `RESEARCH_CONCLUSIONS.md` contains only lessons supported by completed experiments.

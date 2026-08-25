@@ -6,6 +6,7 @@ import numpy as np
 
 from breakthrough_zero.agents import RandomAgent, solve_exact
 from breakthrough_zero.data import (
+    play_parallel_self_play_games,
     play_self_play_game,
     read_records,
     state_from_record,
@@ -100,6 +101,27 @@ class DataTests(unittest.TestCase):
                 set(record["legal_actions"]), set(game.legal_actions())
             )
             self.assertEqual(sum(record["visit_counts"]), 2)
+
+    def test_parallel_self_play_saves_only_full_search_positions(self):
+        player = PUCTPlayer(RolloutEvaluator(), 3, 1.5)
+        report = play_parallel_self_play_games(
+            player,
+            3,
+            10,
+            5,
+            1,
+            3,
+            1,
+            1.0,
+            1.0,
+            2,
+        )
+        self.assertEqual(report["games"], 3)
+        self.assertEqual(report["fast_searches"], 0)
+        self.assertGreater(report["positions"], 0)
+        for record in report["records"]:
+            self.assertEqual(sum(record["visit_counts"]), 3)
+            self.assertIn(record["game_index"], (10, 11, 12))
 
     def test_tactical_suite_has_twenty_balanced_exact_base_positions(self):
         positions = tactical_suite()
