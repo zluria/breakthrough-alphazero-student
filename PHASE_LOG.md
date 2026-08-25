@@ -119,3 +119,10 @@ under the unchanged recipe.
 - Because measured batching throughput would finish 40 iterations far below the
   compute budget, the iteration count is only a generous ceiling. The 50-hour
   limit and three consecutive failed strength checks are the operative stops.
+- Serious run 34030 was submitted from exact source commit `e8d08ba` in the
+  isolated HPC directory `/home/zurlu/breakthrough-alphazero-e8d08ba`. It is
+  using one RTX 2080 Ti, and its startup gate passed all 39 tests under
+  TensorFlow before self-play began. Its phase-6 inputs are linked into the
+  deployment and only read by the loop; all new records, checkpoints, metrics,
+  and matches are written
+  under that deployment's `results/phase8/serious-az-8x8` directory.
