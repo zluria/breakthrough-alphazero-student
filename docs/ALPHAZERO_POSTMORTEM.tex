@@ -166,9 +166,31 @@ Breakthrough AlphaZero project \hfill Post-mortem and student guide}
 \section*{How to read this post-mortem}
 \addcontentsline{toc}{section}{How to read this post-mortem}
 
-Reinforcement-learning success invites retrospective storytelling: after the
-score improves, every design choice can look inevitable. This guide therefore
-separates three kinds of statement.
+Begin with the failure mode, not the final architecture. Suppose a Player-2
+node mistakenly treats a positive Player-1 value as desirable. Search then
+spends visits on the wrong move. Those visits become the policy target. The
+network learns to reproduce the mistake, and the next round of self-play makes
+the same data error more confidently. Nothing crashes. The losses may even
+fall. The circular pipeline has simply learned to agree with itself.
+
+This is the central difficulty of AlphaZero. The policy and value equations are
+compact; the hard part is keeping their meanings unchanged as positions pass
+through rules, coordinate transforms, search, replay, training, checkpoints,
+and evaluation. This chapter follows those meanings all the way around the
+loop. By the end, a reader should be able to:
+
+\begin{itemize}
+  \item derive selection and backup from a stated value convention;
+  \item trace one self-play position into its policy and value targets;
+  \item design tests for rules, actions, symmetry, masking, and serialization;
+  \item distinguish a search failure from a learning or throughput failure;
+  \item design a paired arena that measures strength rather than randomness;
+  \item adapt the method without importing Breakthrough-specific assumptions.
+\end{itemize}
+
+Reinforcement-learning success also invites retrospective storytelling: after
+the score improves, every design choice can look inevitable. This guide
+therefore separates three kinds of statement.
 
 \begin{center}
 \small
@@ -210,6 +232,28 @@ First make every boundary testable; then give the learner enough diverse,
 search-improved data; finally measure strength with paired games rather than
 with training loss.
 \end{plainbox}
+
+\subsection*{Three useful routes through the chapter}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{0.22\textwidth} Y}
+\toprule
+\sffamily\bfseries If you are\ldots &
+\sffamily\bfseries Read in this order \\
+\midrule
+Implementing the system &
+Sections 3--6, then the staged protocol in Section 9. Treat every displayed
+invariant as a test requirement. \\
+Diagnosing a run that does not improve &
+The worked failure in Section 3, the 0--32 case study in Section 6, and the
+symptom-to-test table in Section 7. \\
+Adapting the project to another environment &
+The value, state, and symmetry contracts in Section 4, then all of Section 8.
+Return to the Breakthrough recipe only for examples, not default numbers. \\
+\bottomrule
+\end{tabularx}
+\end{center}
 
 \section{What succeeded}
 
@@ -349,6 +393,80 @@ symmetry assumptions, and actor lifecycle. The successful rebuild deliberately
 reduced the number of boundaries and made the remaining ones observable.
 \end{keybox}
 
+\section{Follow one bug around the loop}
+
+The most dangerous bugs in AlphaZero are semantic: every array has the right
+shape, every probability sums to one, and the program trains. To see why they
+matter, consider a search tree whose $Q$ values are always measured from
+Player 1's viewpoint.
+
+At a Player-2 parent, two moves have the following statistics. The exploration
+bonus has already been calculated from the prior and visit counts.
+
+\begin{center}
+\small
+\begin{tabularx}{0.78\textwidth}{L{0.15\textwidth} Y Y Y}
+\toprule
+\sffamily\bfseries Move &
+\sffamily\bfseries Absolute $Q$ &
+\sffamily\bfseries Exploration $U$ &
+\sffamily\bfseries Meaning \\
+\midrule
+$A$ & $+0.45$ & $0.12$ & Strongly favorable to Player 1. \\
+$B$ & $-0.10$ & $0.12$ & Slightly favorable to Player 2. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+If selection blindly maximizes $Q+U$, it gives $A$ a score of $0.57$ and $B$
+a score of $0.02$. Player 2 selects $A$, the move that is better for the
+opponent. With an absolute Player-1 value, the parent must maximize
+$p(s)Q+U$. Since $p(s)=-1$ here, the scores are
+\[
+  \operatorname{score}(A)=-0.45+0.12=-0.33,
+  \qquad
+  \operatorname{score}(B)=+0.10+0.12=+0.22.
+\]
+The corrected search selects $B$.
+
+Now follow the wrong calculation around one training cycle:
+\begin{enumerate}
+  \item PUCT visits $A$ too often at Player-2 nodes.
+  \item The normalized visit counts assign a high policy target to $A$.
+  \item Self-play chooses $A$ often and produces states from the wrong branch.
+  \item Gradient descent faithfully teaches the policy to prefer $A$ in similar
+        positions.
+  \item The next search begins with a larger prior on $A$, amplifying the same
+        mistake.
+\end{enumerate}
+
+This explains why ``the loss went down'' is weak evidence. The network can
+learn corrupted targets perfectly. The antidote is not a different optimizer;
+it is a hand-computed search test that includes both players.
+
+\subsection{The same example through the value boundary}
+
+Suppose the network evaluates a leaf where Player 2 is to move and returns
+$v_{\mathrm{rel}}=+0.70$. The prediction is favorable to the mover, so in the
+tree's absolute coordinate system it means
+\[
+  v_{\mathrm{abs}}=(-1)(+0.70)=-0.70.
+\]
+Every edge on the search path receives the same absolute result $-0.70$;
+backup does not change its sign. Only selection interprets that result for the
+parent whose choice is being made. At a Player-1 parent it contributes
+$+1\cdot(-0.70)$; at a Player-2 parent it contributes
+$-1\cdot(-0.70)=+0.70$.
+
+\begin{keybox}
+\boxtitle{The invariant to put beside the code}
+$W$ and $Q$ answer one fixed question: ``How good is this for Player 1?''
+The network wrapper converts viewpoints once. Backup averages absolute values
+without sign changes. Selection multiplies exploitation by the \emph{parent's}
+player. If any module answers a different question, make the conversion visible
+at that boundary.
+\end{keybox}
+
 \section{The contracts that made the system coherent}
 
 \subsection{One public value convention}
@@ -376,6 +494,32 @@ is the only turn-dependent operation:
 \]
 Player 1 selects larger absolute $Q$; Player 2 selects smaller absolute $Q$.
 Tests exercise both players on hand-computed trees.
+
+\needspace{13\baselineskip}
+In code, the two places where the convention appears can remain this direct:
+
+\begin{lstlisting}[style=azcode]
+exploration = cpuct * child.prior * sqrt(parent.visits) \
+              / (1 + child.visits)
+score = parent_player * child.q + exploration
+
+while node is not None:
+    node.visits += 1
+    node.q += (absolute_value - node.q) / node.visits
+    node = node.parent
+\end{lstlisting}
+
+There is no sign change in the backup because \code{absolute\_value} keeps the
+same meaning at every depth. If the alternative mover-relative convention is
+used, derive its backup separately rather than mixing the two snippets.
+
+An unvisited child begins with its parent's current $Q$. This is the project's
+first-play estimate: an unseen action is not treated as a mysterious zero when
+the parent already has evidence. When a new leaf is evaluated, back it up
+before expanding it. Its first incremental-mean update then sets its $Q$ exactly
+to the leaf value, and the children it creates inherit that estimate. The
+ordering is a small code detail with a precise statistical meaning, so it
+deserves a direct unit test.
 
 \begin{plainbox}
 \boxtitle{Tradeoff}
@@ -425,6 +569,26 @@ canonicalization, so applying it again during training adds no new example.
 Left-right reflection is the genuine geometric symmetry. The replay buffer
 stores the original position; a random reflection is applied after sampling,
 with the policy target transformed by the same action permutation.
+
+For an $n\times n$ board, reflection sends a move tuple
+\[
+  (r_1,c_1,r_2,c_2)
+  \longmapsto
+  (r_1,n-1-c_1,r_2,n-1-c_2).
+\]
+On an 8x8 board, $(2,1,3,2)$ therefore becomes $(2,6,3,5)$. In the three
+policy channels attached to every source square, forward-left and
+forward-right exchange places while forward stays fixed. Thus a one-hot target
+for the original move must become a one-hot target for the reflected move; it
+must not remain at the same flat policy index.
+
+This gives a useful metamorphic test. Start from a legal position $s$, reflect
+it to $R(s)$, and reflect every legal action. For every action $a$ require
+\[
+  R(T(s,a)) = T(R(s),R(a)),
+\]
+where $T$ is the game transition. Then transform a policy vector, invert the
+transformation, and require exact recovery of the original vector.
 
 \begin{warningbox}
 \boxtitle{Common symmetry bug}
@@ -550,6 +714,39 @@ Most catastrophic loss problems were not caused by this equation. They came
 from feeding the equation targets expressed in the wrong coordinate system,
 perspective, action indexing, or sample distribution.
 
+\subsection{Validation answers a narrower question than an arena}
+
+For the fixed pretraining corpus, complete games were assigned to either the
+training split or the validation split before positions were extracted and
+augmented. Splitting individual positions would leak near-duplicates from the
+same trajectory across both sets. Applying reflection before the split could
+leak exact symmetric copies.
+
+A validation set asks whether the model generalizes to held-out examples from
+the same data-producing process. It can expose memorization, a representation
+mistake, or a normalization/serialization discrepancy. It cannot, by itself,
+answer whether the policy wins more games. During self-play the actor and its
+state distribution are changing, so even the meaning of a stationary
+validation curve becomes limited.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{Y Y}
+\toprule
+\sffamily\bfseries Question & \sffamily\bfseries Appropriate evidence \\
+\midrule
+Can the network learn the teacher's labels beyond its training games? &
+Whole-game held-out policy and value losses. \\
+Are state, action, and value targets internally correct? &
+Exact labels, round trips, metamorphic tests, and hand calculations. \\
+Was the larger corpus worth its generation cost? &
+A data-size curve or a match between models trained on nested subsets. \\
+Did the latest checkpoint become a stronger player? &
+A controlled arena using search, paired openings, and both colors. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
 \section{A serious but simple AlphaZero loop}
 
 \subsection{The loop}
@@ -573,6 +770,51 @@ model generates the next tranche. Scheduled matches report progress; they do
 not roll the actor backward. This avoids a noisy gate freezing learning or
 creating a two-model lifecycle that students cannot audit.
 
+\subsection{One training record, end to end}
+
+The clearest way to understand the loop is to trace one position. While a game
+is in progress, keep the untransformed board, the player to move, and the root
+visit counts. The winner is not known yet:
+
+\begin{lstlisting}[style=azcode]
+history.append((board.copy(), player, root_visit_counts))
+\end{lstlisting}
+
+When the game ends, attach the same absolute outcome to every history entry:
+
+\begin{lstlisting}[style=azcode]
+for board, player, counts in history:
+    replay.add((board, player, counts, winner_for_player_1))
+\end{lstlisting}
+
+Only after a record is sampled for training do we optionally reflect both its
+board and visit-count vector. The neural input is then oriented to the mover,
+and the absolute game outcome is converted to the mover's viewpoint:
+
+\begin{lstlisting}[style=azcode]
+board, player, counts, z_absolute = replay.sample_one()
+if random.choice([False, True]):
+    board = reflect_board(board)
+    counts = reflect_policy(counts)
+x = canonical_input(board, player)
+pi = counts / counts.sum()
+z = player * z_absolute
+train_on(x, pi, z)
+\end{lstlisting}
+
+Here \code{player} is $+1$ for Player 1 and $-1$ for Player 2. The policy
+target comes from search, not from the move eventually sampled for play. The
+value target comes from the completed game, not the leaf evaluation used
+during search. These two distinctions are easy to lose in a larger actor.
+
+\begin{plainbox}
+\boxtitle{Audit a replay row by hand}
+Choose one stored row. Reconstruct its legal actions, normalize its visit
+counts, reflect it and invert the reflection, compute its mover-relative value
+target, and feed it through the saved model. This single exercise crosses most
+of the interfaces that otherwise fail silently.
+\end{plainbox}
+
 \subsection{Parallel search changed throughput, not semantics}
 
 Actors advanced 32 games together and batched neural leaf evaluations on the
@@ -584,6 +826,22 @@ This distinction paid off during diagnosis. A severe Player-1 collapse appeared
 at an 8/2 simulation budget in both sequential and batched implementations.
 Raising the budget to 64 simulations restored a 19--13 split. The defect was
 insufficient search, not batching.
+
+\begin{warningbox}
+\boxtitle{Worked diagnosis: the 0--32 result}
+\textbf{Observation:} the batched actor produced 32 Player-2 wins and no
+Player-1 wins. \textbf{First hypothesis:} batching had changed search
+semantics. \textbf{Discriminating test:} run the slow sequential actor with the
+same tiny 8/2 full/fast budget. It also produced 0--32, so the failure followed
+the budget rather than the scheduler. \textbf{Second test:} keep the checkpoint
+fixed and raise search to 64 simulations. The split became 19--13.
+
+This did not prove that batching was bug-free; the reference comparison tests
+did that separately. It showed that this particular collapse was caused by
+asking an asymmetric game to generate its own labels with almost no lookahead.
+The experiment changed one causal variable at a time and used an outcome that
+could distinguish the hypotheses.
+\end{warningbox}
 
 \begin{plainbox}
 \boxtitle{Portable principle}
@@ -788,6 +1046,36 @@ A tactical suite is a probe, not a complete strength measure. Keep the raw
 per-position outputs so one easy family cannot hide a systematic failure.
 
 \section{Adapting the method to another environment}
+\label{sec:adapt}
+
+Some conclusions below are mathematical; others exploit the game. Make this
+separation before transferring the design.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{0.28\textwidth} Y}
+\toprule
+\sffamily\bfseries Breakthrough fact & \sffamily\bfseries Consequence here \\
+\midrule
+Two-player, alternating, zero-sum &
+One scalar value and a parent-player sign are sufficient. \\
+Deterministic, perfect information &
+No chance nodes or belief states are required; paired openings control much of
+the evaluation variance. \\
+Players are equivalent after rotation and relabelling &
+A two-plane mover-relative neural representation is exact. \\
+Left and right are strategically symmetric &
+Horizontal reflection is valid augmentation; action channels must reflect too. \\
+At most three pawn moves leave a square &
+Three policy channels per board square form a direct action encoding. \\
+Games are short enough for terminal outcomes &
+The final winner supplies an undiscounted target to every stored position. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+If one row becomes false in a new environment, redesign the corresponding
+component rather than preserving the Breakthrough implementation by habit.
 
 \subsection{Decide the value object before writing MCTS}
 
@@ -917,6 +1205,63 @@ Every expensive run should answer a question that a cheaper run cannot answer.
 If the next 20 GPU-hours are merely checking whether action indices are correct,
 the project has skipped a gate.
 \end{keybox}
+
+\section{Problems worth working through}
+
+These exercises target the places where a plausible implementation most often
+goes wrong. They are more useful than copying a complete training script.
+
+\begin{enumerate}
+  \item \textbf{PUCT by hand.} At a Player-2 parent, child $A$ has
+        $Q=+0.30$ and $U=0.05$; child $B$ has $Q=-0.05$ and $U=0.20$.
+        Compute both selection scores under the absolute convention. Then
+        repeat for Player 1. Check: Player 2 chooses $B$; Player 1 chooses $A$.
+
+  \item \textbf{Trace a terminal value.} Player 2 moves from $s_0$, Player 1
+        moves from $s_1$, and Player 2 eventually wins. Write the absolute
+        replay outcome and the two neural value targets. Check: the stored
+        outcome is $-1$ for both rows; the mover-relative targets are $+1$ at
+        $s_0$ and $-1$ at $s_1$.
+
+  \item \textbf{Make symmetry executable.} Choose a legal capture near the
+        left edge. Reflect the board, move tuple, legal mask, and a one-hot
+        policy. Verify the transition commutation equation from Section 4 and
+        exact recovery after two reflections. Make the test fail once by
+        leaving the policy unchanged; inspect why ordinary shape checks miss
+        the error.
+
+  \item \textbf{Measure replay exposure.} An iteration adds 4,000 positions and
+        draws 8,000 examples for training. Compute the reuse ratio. Then explain
+        why this does not mean that every one of 25,000 replay entries was seen
+        twice. Check: the ratio is 2 per \emph{fresh} position; sampling is over
+        the whole window and individual counts vary.
+
+  \item \textbf{Find validation leakage.} A 30-ply game contributes 30 adjacent
+        positions, each optionally reflected. Compare a random position split
+        with a whole-game split. List two ways the first can make validation
+        optimistic, and state when the validation set must be chosen.
+
+  \item \textbf{Design a fair 40-game arena.} Specify how many independently
+        generated opening prefixes are needed, how colors are assigned, what
+        randomness remains after the opening, which model hashes are logged,
+        and how crashes are reported. Check: 20 openings, each played twice;
+        deterministic search after the opening; failures separate from game
+        results.
+
+  \item \textbf{Discriminate causes.} A new batched actor shows a severe color
+        imbalance. Propose the smallest set of fixed-checkpoint runs that can
+        distinguish a value-sign bug, a batching bug, and insufficient search.
+        Each comparison should change only one relevant feature.
+\end{enumerate}
+
+\begin{plainbox}
+\boxtitle{Implementation lab}
+Before launching 8x8 self-play, make all seven exercises concrete on 5x5:
+print the hand-computed node statistics, save one audited replay row, and keep
+the failing version of each metamorphic test long enough to see that it detects
+the intended defect. A test whose failure you have never observed may be
+checking less than its name suggests.
+\end{plainbox}
 
 \section{The successful Breakthrough recipe}
 
@@ -1129,7 +1474,33 @@ the next experiment, not substitute for it.
 
 Finally, Breakthrough is deterministic, perfect-information, alternating,
 two-player, and zero-sum. The value algebra, evaluation pairing, and canonical
-player transform exploit those facts. Section 7 describes the changes required
-when an environment does not share them.
+player transform exploit those facts. Section~\ref{sec:adapt} describes the
+changes required when an environment does not share them.
+
+\section{Further reading}
+
+\begin{itemize}
+  \item Dominik Klein, \emph{Neural Networks for Chess}, especially the MCTS
+        chapter, the AlphaZero overview, and the executable HexapawnZero case
+        study. \href{https://arxiv.org/abs/2209.01506}{arXiv:2209.01506}.
+  \item David Silver et al., \emph{Mastering Chess and Shogi by Self-Play with
+        a General Reinforcement Learning Algorithm},
+        \href{https://arxiv.org/abs/1712.01815}{arXiv:1712.01815}. This is the
+        primary source for the AlphaZero algorithm and its chess/shogi
+        instantiation.
+  \item David J. Wu, \emph{Accelerating Self-Play Learning in Go},
+        \href{https://arxiv.org/abs/1902.10565}{arXiv:1902.10565}. KataGo is a
+        useful example of treating self-play efficiency, target quality, and
+        evaluation as engineering questions rather than historical dogma.
+  \item Richard S. Sutton and Andrew G. Barto, \emph{Reinforcement Learning:
+        An Introduction}, second edition, for the broader language of value
+        functions, bootstrapping, exploration, and off-policy data.
+\end{itemize}
+
+Klein's Hexapawn chapter is particularly useful before this guide: it shows the
+complete loop in a game small enough to reason about. This post-mortem takes
+the next step---what must be added when the implementation is large enough that
+silent interface errors, non-stationary data, parallel inference, and noisy
+strength estimates become decisive.
 
 \end{document}
