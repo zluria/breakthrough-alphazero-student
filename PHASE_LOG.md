@@ -133,3 +133,15 @@ under the unchanged recipe.
   latest checkpoint, the best strength-reference checkpoint, and the seven most
   recent replay tranches, then trains for exactly the remaining budget without
   the three-stall stop. Five-hour paired matches continue in the second segment.
+- The first two scheduled checks installed iteration 15 after a 39-1 result
+  against the phase-6 iteration-5 starting model, then installed iteration 26
+  after a 36-4 result against iteration 15.
+- Slurm job 34098 evaluated accepted iteration 26 against the phase-6 alpha-beta
+  baseline. It used 25 distinct random six-ply openings, played each with both
+  color assignments, and allowed both agents 0.1 seconds per move. All 50 games
+  completed without failure. Iteration 26 scored 49-1, including 24-1 as Player
+  1 and 25-0 as Player 2; its 95% Wilson interval was 89.5%-99.6%.
+- Job 34098 ran on an L40S, whereas the phase-6 2-58 result was obtained on an
+  RTX 2080-class node. The arena software, time allowance, board settings, and
+  paired-opening design were unchanged, but the score difference is not a
+  hardware-controlled estimate of the improvement's exact size.
