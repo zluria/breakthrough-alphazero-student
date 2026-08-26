@@ -136,6 +136,10 @@ under the unchanged recipe.
 - The first two scheduled checks installed iteration 15 after a 39-1 result
   against the phase-6 iteration-5 starting model, then installed iteration 26
   after a 36-4 result against iteration 15.
+- The next two scheduled checks installed iteration 36 after a 36-4 result
+  against iteration 26, then installed iteration 46 after a 26-14 result
+  against iteration 36. All four checks used fresh paired openings; an audit of
+  the first three found no opening or complete-game overlap.
 - Slurm job 34098 evaluated accepted iteration 26 against the phase-6 alpha-beta
   baseline. It used 25 distinct random six-ply openings, played each with both
   color assignments, and allowed both agents 0.1 seconds per move. All 50 games
@@ -145,3 +149,20 @@ under the unchanged recipe.
   RTX 2080-class node. The arena software, time allowance, board settings, and
   paired-opening design were unchanged, but the score difference is not a
   hardware-controlled estimate of the improvement's exact size.
+- Slurm job 34119 supplied a same-hardware sanity check on an RTX 2080 SUPER.
+  Rollout PUCT, alpha-beta, and iterations 15, 26, 36, and 46 played a
+  quadruple round robin: two fresh six-ply openings per pairing, each repeated
+  with colors reversed, for 60 games. All 39 startup tests passed, all 60 games
+  completed, all 30 openings and all 60 complete move logs were distinct, and
+  there were no pairing, color, or game failures. The standings were iteration
+  46 at 18/20, iteration 36 and alpha-beta at 13/20, iteration 26 at 9/20,
+  iteration 15 at 7/20, and rollout PUCT at 0/20. In the direct checkpoint
+  pairings, 15-26 was 2-2, 15-36 was 0-4, 15-46 was 0-4, 26-36 was 1-3,
+  26-46 was 1-3, and 36-46 was 0-4. Four games per pairing are a wiring and
+  ordering check, not a precise strength estimate.
+- The same-hardware tournament also makes the earlier hardware caveat concrete:
+  alpha-beta beat iteration 26 by 3-1 on the RTX 2080 SUPER even though
+  iteration 26 beat it 49-1 on the L40S. A 0.1-second time control is internally
+  fair on one node but is not portable across hardware, because neural PUCT's
+  search count changes with GPU throughput. Cross-hardware scores must not be
+  interpreted as a hardware-neutral measure of model improvement.

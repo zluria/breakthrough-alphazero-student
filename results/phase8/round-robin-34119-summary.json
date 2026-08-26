@@ -1,0 +1,69 @@
+{
+  "job_id": 34119,
+  "state": "COMPLETED",
+  "exit_code": 0,
+  "elapsed": "00:06:08",
+  "node": "HPC-RTX2080s-01",
+  "source_deployment_commit": "e8d08ba",
+  "settings": {
+    "board_size": 8,
+    "starting_rows": 2,
+    "agents": [
+      "rollout-puct",
+      "alpha-beta",
+      "iteration-15",
+      "iteration-26",
+      "iteration-36",
+      "iteration-46"
+    ],
+    "games_per_pairing": 4,
+    "openings_per_pairing": 2,
+    "prefix_plies": 6,
+    "move_seconds": 0.1,
+    "puct_simulation_ceiling": 1000000,
+    "paired_colors": true,
+    "noise": false,
+    "move_sampling": false
+  },
+  "pairings": [
+    ["alpha-beta", 3, 1, "iteration-15"],
+    ["alpha-beta", 3, 1, "iteration-26"],
+    ["alpha-beta", 2, 2, "iteration-36"],
+    ["alpha-beta", 1, 3, "iteration-46"],
+    ["iteration-15", 2, 2, "iteration-26"],
+    ["iteration-15", 0, 4, "iteration-36"],
+    ["iteration-15", 0, 4, "iteration-46"],
+    ["iteration-26", 1, 3, "iteration-36"],
+    ["iteration-26", 1, 3, "iteration-46"],
+    ["iteration-36", 0, 4, "iteration-46"],
+    ["rollout-puct", 0, 4, "alpha-beta"],
+    ["rollout-puct", 0, 4, "iteration-15"],
+    ["rollout-puct", 0, 4, "iteration-26"],
+    ["rollout-puct", 0, 4, "iteration-36"],
+    ["rollout-puct", 0, 4, "iteration-46"]
+  ],
+  "standings": [
+    ["iteration-46", 18, 20],
+    ["iteration-36", 13, 20],
+    ["alpha-beta", 13, 20],
+    ["iteration-26", 9, 20],
+    ["iteration-15", 7, 20],
+    ["rollout-puct", 0, 20]
+  ],
+  "artifact_audit": {
+    "pairing_reports": 15,
+    "games": 60,
+    "unique_six_ply_openings": 30,
+    "unique_complete_games": 60,
+    "pairing_errors": 0,
+    "color_errors": 0,
+    "game_failures": 0
+  },
+  "independent_strength_check": {
+    "candidate": "iteration-46",
+    "reference": "iteration-36",
+    "score": "26-14",
+    "games": 40,
+    "accepted": true
+  }
+}
