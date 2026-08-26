@@ -1,0 +1,1135 @@
+\documentclass[10.5pt,letterpaper]{article}
+
+\usepackage[letterpaper,margin=0.82in,headheight=15pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[scaled=0.92]{helvet}
+\usepackage{inconsolata}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{needspace}
+\usepackage{ragged2e}
+\usepackage{lastpage}
+
+\definecolor{navy}{HTML}{19344A}
+\definecolor{blue}{HTML}{246FA8}
+\definecolor{deepblue}{HTML}{164E73}
+\definecolor{gold}{HTML}{A36D00}
+\definecolor{ink}{HTML}{20252B}
+\definecolor{muted}{HTML}{626B73}
+\definecolor{paleblue}{HTML}{EAF2F8}
+\definecolor{palegold}{HTML}{FBF3DE}
+\definecolor{palegray}{HTML}{F4F6F7}
+\definecolor{lineblue}{HTML}{AFC9DD}
+\definecolor{good}{HTML}{2B6B45}
+\definecolor{warn}{HTML}{8C5A00}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=deepblue,
+  urlcolor=blue,
+  pdftitle={Why This AlphaZero Loop Worked},
+  pdfauthor={Breakthrough AlphaZero project},
+  pdfsubject={Technical post-mortem and implementation guide}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\footnotesize\color{muted}ALPHAZERO POST-MORTEM}
+\fancyhead[R]{\sffamily\footnotesize\color{muted}BREAKTHROUGH PROJECT}
+\fancyfoot[L]{\sffamily\footnotesize\color{muted}Technical implementation guide}
+\fancyfoot[R]{\sffamily\footnotesize\color{muted}\thepage\ / \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\titleformat{\section}
+  {\needspace{4\baselineskip}\sffamily\Large\bfseries\color{blue}}
+  {\thesection}{0.65em}{}
+\titleformat{\subsection}
+  {\needspace{3\baselineskip}\sffamily\large\bfseries\color{deepblue}}
+  {\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\needspace{2.5\baselineskip}\sffamily\normalsize\bfseries\color{navy}}
+  {\thesubsubsection}{0.55em}{}
+\titlespacing*{\section}{0pt}{1.6em}{0.65em}
+\titlespacing*{\subsection}{0pt}{1.2em}{0.45em}
+\titlespacing*{\subsubsection}{0pt}{0.9em}{0.3em}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.22}
+\setlist[itemize]{leftmargin=1.35em,itemsep=0.3em,topsep=0.3em}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=0.45em,topsep=0.35em}
+
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+
+\newtcolorbox{keybox}[1][]{
+  enhanced, colback=paleblue, colframe=blue, boxrule=0pt,
+  borderline west={2.4pt}{0pt}{blue}, arc=0pt,
+  left=8pt,right=7pt,top=6pt,bottom=6pt,
+  before skip=8pt,after skip=9pt, #1
+}
+\newtcolorbox{warningbox}[1][]{
+  enhanced, colback=palegold, colframe=gold, boxrule=0pt,
+  borderline west={2.4pt}{0pt}{gold}, arc=0pt,
+  left=8pt,right=7pt,top=6pt,bottom=6pt,
+  before skip=8pt,after skip=9pt, #1
+}
+\newtcolorbox{plainbox}[1][]{
+  enhanced, colback=palegray, colframe=lineblue, boxrule=0.5pt,
+  arc=1pt, left=8pt,right=8pt,top=6pt,bottom=6pt,
+  before skip=8pt,after skip=9pt, #1
+}
+
+\newcommand{\boxtitle}[1]{\sffamily\bfseries\color{deepblue}#1.\ }
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\lstdefinestyle{azcode}{
+  basicstyle=\ttfamily\small\color{navy},
+  backgroundcolor=\color{palegray},
+  frame=single,
+  rulecolor=\color{lineblue},
+  framesep=6pt,
+  xleftmargin=8pt,
+  xrightmargin=4pt,
+  aboveskip=7pt,
+  belowskip=8pt,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\vspace*{0.65in}
+{\sffamily\bfseries\color{gold}\large TECHNICAL POST-MORTEM AND IMPLEMENTATION GUIDE}
+\vspace{0.55in}
+
+{\sffamily\bfseries\color{navy}\fontsize{31}{35}\selectfont
+Why This AlphaZero Loop Worked\par}
+\vspace{0.25in}
+
+{\sffamily\color{deepblue}\fontsize{17}{22}\selectfont
+Lessons from repeated failures, a clean-room rebuild,\\
+and a successful 8x8 Breakthrough run\par}
+\vspace{0.28in}
+
+{\large\itshape\color{muted}
+For students implementing AlphaZero-style systems\\
+26 August 2026\par}
+
+\vfill
+\begin{keybox}
+\boxtitle{Project-declared success}
+The accepted iteration-26 network beat the already-trained phase-6 starting
+model 39--1, then beat iteration 15 by 36--4, and finally beat the depth-4
+alpha-beta baseline 49--1 in a 50-game paired-opening arena. The 50-hour
+training program was still running when this post-mortem was written.
+\end{keybox}
+\vspace{0.2in}
+
+\begin{center}
+\large\itshape
+The lesson is not that one hyperparameter was magic. The system improved when
+its conventions, tests, data, search, optimization, exploration, and evaluation
+finally formed one coherent feedback loop.
+\end{center}
+
+\vfill
+{\sffamily\footnotesize\color{muted}
+Breakthrough AlphaZero project \hfill Post-mortem and student guide}
+\end{titlepage}
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\clearpage
+
+\section*{How to read this post-mortem}
+\addcontentsline{toc}{section}{How to read this post-mortem}
+
+Reinforcement-learning success invites retrospective storytelling: after the
+score improves, every design choice can look inevitable. This guide therefore
+separates three kinds of statement.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{0.19\textwidth} Y Y}
+\toprule
+\sffamily\bfseries Evidence class &
+\sffamily\bfseries Meaning &
+\sffamily\bfseries Example in this project \\
+\midrule
+Invariant &
+A property established by unit, differential, or metamorphic tests. &
+Action round trips, perspective conversion, sign-free backup, and exact
+make/unmake restoration. \\
+Measured result &
+A comparison from a completed run with recorded settings. &
+The 1,000-game versus 10,000-game pretraining match and paired checkpoint
+arenas. \\
+Causal hypothesis &
+A plausible explanation consistent with the evidence, but not isolated by a
+full ablation. &
+Why the combined serious-training recipe escaped the feedback failures of
+earlier attempts. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{warningbox}
+\boxtitle{Causality warning}
+The successful 8x8 run changed several compute-efficiency and training choices
+together. Its success proves that the complete recipe works in this setting.
+It does not prove that every ingredient is necessary or that each contributed
+independently. Where the evidence does not support a causal claim, this guide
+says so.
+\end{warningbox}
+
+\begin{plainbox}
+\boxtitle{The guide in one sentence}
+First make every boundary testable; then give the learner enough diverse,
+search-improved data; finally measure strength with paired games rather than
+with training loss.
+\end{plainbox}
+
+\section{What succeeded}
+
+The project succeeded in the operational sense that matters for an AlphaZero
+assignment: repeated
+\[
+  \textsc{Play} \longrightarrow \textsc{Search} \longrightarrow
+  \textsc{Train}
+\]
+updates produced agents demonstrably stronger than their trained predecessors
+and stronger than a fixed classical baseline. That is much stronger evidence
+than a falling loss, a plausible-looking policy, or a single entertaining game.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{Y L{0.12\textwidth} Y}
+\toprule
+\sffamily\bfseries Checkpoint comparison &
+\sffamily\bfseries Score &
+\sffamily\bfseries Protocol \\
+\midrule
+Phase-6 iteration 5 vs.\ raw pretrained initializer &
+52--8 &
+60 paired 0.1-second games. \\
+\addlinespace[2pt]
+Serious iteration 15 vs.\ phase-6 iteration 5 &
+39--1 &
+20 six-ply openings, colors reversed, fixed 64-simulation search. \\
+\addlinespace[2pt]
+Serious iteration 26 vs.\ serious iteration 15 &
+36--4 &
+The same scheduled strength-check protocol. \\
+\addlinespace[2pt]
+Serious iteration 26 vs.\ depth-4 alpha-beta &
+49--1 &
+25 six-ply openings, colors reversed, 0.1 seconds per move. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The final alpha-beta match was balanced by color: iteration 26 scored 24--1 as
+Player 1 and 25--0 as Player 2. All 50 games completed. Its Wilson interval was
+89.5\%--99.6\%. The match ran on an L40S, whereas the earlier 2--58 phase-6
+result used RTX 2080-class hardware. The exact magnitude of improvement is
+therefore not hardware-controlled. The conclusion that iteration 26 beat the
+baseline under the measured protocol is nevertheless unambiguous.
+
+\subsection*{What success does not establish}
+\begin{itemize}
+  \item It does not establish optimal play, or even the strongest feasible
+        Breakthrough agent.
+  \item It does not prove that the full 50-hour budget was necessary; the agent
+        was already strong by iteration 26.
+  \item It does not isolate the individual contribution of playout-cap
+        randomization, replay size, root noise, search growth, or learning rate.
+  \item It does not make validation loss a strength metric. The decisive
+        evidence is the checkpoint ladder and the external baseline match.
+  \item It does not imply that the same numeric settings transfer unchanged to
+        games with different branching factors, horizons, rewards, or
+        symmetries.
+\end{itemize}
+
+\section{Why earlier attempts failed}
+
+The earlier projects did not fail because they lacked sophistication. They
+failed because individually reasonable components disagreed at their
+boundaries. A process-local augmentation counter reset. An inference ensemble
+required by training was omitted. Rare teacher samples dominated batches.
+Optimizer and checkpoint lifecycles became unclear. Some arenas compared
+identical model hashes or counted time forfeits as strength.
+
+AlphaZero is unusually unforgiving of such defects because each model creates
+the next model's data. A small systematic error is not merely observed; it is
+fed back into the system.
+
+\small
+\begin{longtable}{L{0.19\textwidth} L{0.38\textwidth} L{0.35\textwidth}}
+\toprule
+\sffamily\bfseries Earlier pattern &
+\sffamily\bfseries Observed failure &
+\sffamily\bfseries Successful-project response \\
+\midrule
+\endfirsthead
+\toprule
+\sffamily\bfseries Earlier pattern &
+\sffamily\bfseries Observed failure &
+\sffamily\bfseries Successful-project response \\
+\midrule
+\endhead
+Complex absolute-player encoding plus four transformations &
+A prior 8x8 continuous run lost augmentation state between short learner
+processes and omitted the required inference ensemble. The actor developed
+asymmetric blind spots and material gifts. &
+Use two mover-relative planes. Convert value perspective in one wrapper.
+Player swap becomes a test, not training augmentation; random left-right
+reflection is enough. \\
+\addlinespace
+Tiny or badly weighted learning data &
+One historical diagnosis gave rare teacher positions about 71 times the
+per-position weight of neural positions. A nominal batch of 256 had effective
+size near 18, and every trained epoch worsened validation. &
+Use a recent FIFO of homogeneous neural self-play for reinforcement learning.
+Size training by presentations per fresh position, not opaque source weights. \\
+\addlinespace
+Optimizer and actor lifecycle spread across jobs &
+Restarted learner processes and rollback machinery made it easy to lose Adam
+state or compare one checkpoint under two labels. &
+Save Keras optimizer state with every checkpoint. The newest trained network
+always generates the next tranche; reference checkpoints are diagnostic only. \\
+\addlinespace
+Repeated live seeds &
+Supposedly fresh runs reproduced the same first games. Deterministic evaluation
+risked measuring one repeated trajectory. &
+Do not fix seeds in production self-play, replay sampling, or arenas. Generate
+distinct random opening prefixes, then reverse colors within each pair. \\
+\addlinespace
+Too little search mistaken for a batching bug &
+At 8/2 simulations, sequential and batched self-play both produced 0--32
+Player-1 results. &
+Separate algorithm quality from throughput. A 64-simulation diagnostic restored
+a healthy 19--13 split; the serious schedule began at 128/16. \\
+\addlinespace
+Metrics and gates accumulated faster than understanding &
+Binary tactical gates and actor-versus-candidate machinery sometimes rejected
+useful models or evaluated identical hashes. &
+Keep direct invariant tests, a continuous tactical score, compact metrics, and
+standalone paired arenas. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\begin{keybox}
+\boxtitle{Most important comparison}
+The historical failures came from sophistication crossing untested boundaries:
+process-local state, replay weights, time-control grace, checkpoint identity,
+symmetry assumptions, and actor lifecycle. The successful rebuild deliberately
+reduced the number of boundaries and made the remaining ones observable.
+\end{keybox}
+
+\section{The contracts that made the system coherent}
+
+\subsection{One public value convention}
+
+Outside the neural network, every value is an \emph{absolute Player-1 value}:
+$+1$ favors Player 1 and $-1$ favors Player 2. The network sees the mover as
+its own side, so its raw value is mover-relative. A single neural-boundary
+wrapper performs the conversion:
+\[
+  v_{\mathrm{abs}}(s) = p(s)\,v_{\mathrm{rel}}(s),
+  \qquad
+  z_{\mathrm{rel}}(s) = p(s)\,z_{\mathrm{abs}},
+\]
+where $p(s)=+1$ when Player 1 is to move and $p(s)=-1$ when Player 2 is to move.
+
+The tree stores absolute values. Backup therefore never flips a sign. Selection
+is the only turn-dependent operation:
+\[
+  a^* = \arg\max_a
+  \left[
+    p(s)\,Q(s,a) +
+    c_{\mathrm{puct}}\,P(s,a)
+    \frac{\sqrt{\sum_b N(s,b)}}{1+N(s,a)}
+  \right].
+\]
+Player 1 selects larger absolute $Q$; Player 2 selects smaller absolute $Q$.
+Tests exercise both players on hand-computed trees.
+
+\begin{plainbox}
+\boxtitle{Tradeoff}
+Absolute tree values are not inherently better than mover-relative tree values.
+Mover-relative values can be elegant, but then every edge crossing changes
+perspective and backup usually flips a sign. Absolute values made the teaching
+implementation easier to audit because one wrapper and one exploit term contain
+all perspective logic. The portable rule is not to always use absolute values.
+It is to choose one convention, write it down, and test every boundary against
+it.
+\end{plainbox}
+
+\subsection{A trusted ladder below self-play}
+
+The project did not ask a neural reinforcement-learning loop to diagnose its
+own foundations. Each layer had a cheaper oracle:
+\begin{itemize}
+  \item \textbf{Rules:} an independently written legal-move generator and exact
+        make/unmake restoration.
+  \item \textbf{Terminal logic:} goal-row, no-reply, capture, and the rule that
+        a terminal move does not switch player.
+  \item \textbf{Action encoding:} encode/decode round trips for every legal move
+        in random games.
+  \item \textbf{Symmetry:} metamorphic tests for legal moves, policy indices,
+        outcomes, and reflected positions.
+  \item \textbf{Search:} uniform-prior or rollout search that finds immediate
+        wins for both players before a neural network is introduced.
+  \item \textbf{Network boundary:} solver-labelled supervised positions that
+        establish that policy masking, value perspective, fitting, save/load,
+        and inference all agree.
+\end{itemize}
+
+This ladder matters because a self-play loop that did not improve is an
+extremely low-information symptom. A reflected position that changes its
+terminal outcome, or a Player-2 node that prefers the larger absolute $Q$,
+points almost directly to a faulty line of code.
+
+\subsection{Canonical state and symmetry}
+
+The neural input contains two planes: pieces belonging to the mover and pieces
+belonging to the opponent. The board is oriented so the mover always advances
+in the same neural direction. This removes an irrelevant color distinction
+without discarding game information.
+
+For Breakthrough, player swap is already represented by mover-relative
+canonicalization, so applying it again during training adds no new example.
+Left-right reflection is the genuine geometric symmetry. The replay buffer
+stores the original position; a random reflection is applied after sampling,
+with the policy target transformed by the same action permutation.
+
+\begin{warningbox}
+\boxtitle{Common symmetry bug}
+Transforming the board but not the policy indices silently assigns probability
+to the wrong actions. Test a one-hot policy through every transformation and its
+inverse. Also test legal-action masks and terminal rewards. A visual inspection
+of transformed boards is not enough.
+\end{warningbox}
+
+\subsection{Exact state restoration}
+
+MCTS applies and retracts many moves. A one-bit mutation leak can corrupt
+distant branches while leaving the root position apparently plausible. For
+random legal positions and every legal action, the project checks:
+\[
+  \texttt{snapshot(state)}
+  =
+  \texttt{snapshot(unmake(make(state, action)))}.
+\]
+The snapshot includes the board, player to move, terminal fields, and any cached
+legal-action information. For a new environment, hash the complete state before
+and after every debug search until this contract is beyond doubt.
+
+\section{Data and optimization choices that mattered}
+
+\subsection{The 5x5 ladder was an instrument, not a toy}
+
+The smaller board shortened games, reduced the branching factor, and made exact
+or strong tactical labels affordable. It exposed value-perspective errors,
+BatchNorm behavior, memorization, label imbalance, and weaknesses in the first
+tactical suite before expensive 8x8 jobs were submitted.
+
+The project did \emph{not} stretch a padded 5x5 network into an 8x8 network and
+call that evidence about native 8x8 strength. Native board sizes received
+native models and native data. What transferred was the tested process.
+
+\begin{plainbox}
+\boxtitle{Generalization}
+Choose the smallest faithful instance of the target environment: a smaller
+board, shorter horizon, reduced action set, or deterministic scenario. It must
+preserve the contracts you are testing. If the reduced problem changes the
+meaning of an action, observation, or reward, it is a different environment,
+not a debugging ladder.
+\end{plainbox}
+
+\subsection{Pretraining gave self-play a competent starting distribution}
+
+The 8x8 initializer was trained on 10,000 rollout-PUCT games containing 421,561
+stored positions. A 1,000-game subset was not nearly as good: it lost 24--76 to
+the 10,000-game model. The large corpus therefore bought measurable strength,
+not merely a prettier loss curve.
+
+The stored corpus contained real positions. Symmetry was sampled during
+training rather than materialized as duplicate records. This keeps storage
+honest and allows a fresh random transformation on every presentation.
+
+Pretraining is not a requirement of AlphaZero in principle. In a modest compute
+budget it is an engineering choice: it avoids spending the first expensive
+neural self-play hours rediscovering elementary legality and tactics. For
+another environment, a teacher may be a rollout search, alpha-beta, heuristic
+controller, solver, demonstration set, or a mixture. The target is not
+imitation forever; it is a policy/value pair good enough for search to produce
+useful improvements.
+
+\subsection{Architecture followed evidence}
+
+The final network was intentionally modest: 48 filters, three residual blocks,
+and a direct three-channel $1\times1$ convolutional policy head. Batch
+normalization was removed after supervised diagnostics showed that its moving
+statistics and small, correlated batches complicated the learning signal.
+
+This is a project-specific result, not a universal ban on BatchNorm. Larger,
+well-shuffled batches or different normalization schemes may work well. The
+portable lesson is to ask the network to pass a controlled supervised task
+before blaming self-play. If a small model cannot fit and generalize on exact
+labels, more actors will only generate expensive ambiguity.
+
+\subsection{Replay exposure was explicit}
+
+The serious loop used a FIFO replay of roughly 25,000 recent neural positions,
+batch size 128, and about two training presentations per fresh position. Adam
+state was retained, with learning rate $2.5\times10^{-4}$.
+
+The useful quantity is not epochs in isolation. It is how often each fresh
+position is expected to influence an update:
+\[
+  \text{reuse ratio}
+  =
+  \frac{\text{training examples drawn in an iteration}}
+       {\text{new positions added in that iteration}}.
+\]
+Too little reuse underfits expensive search targets. Too much reuse memorizes a
+small, highly correlated window and can erase older competencies. The right
+window also depends on policy drift: recent data are on-policy but narrow;
+older data improve diversity but were generated by weaker policies.
+
+\begin{warningbox}
+\boxtitle{Do not fix divergence by freezing learning}
+Lowering the learning rate to nearly zero can make losses and weights look
+stable while stopping improvement. First diagnose perspective, labels,
+effective sample size, replay composition, normalization, optimizer state, and
+search quality. Stability without learning is not success.
+\end{warningbox}
+
+\subsection{The loss was conventional; the targets were the hard part}
+
+For canonical state $s$, search policy $\pi$, and mover-relative outcome $z$,
+the learner minimized
+\[
+  \mathcal{L}(\theta)
+  =
+  (z-v_\theta(s))^2
+  -
+  \pi^\mathsf{T}\log p_\theta(\cdot\mid s)
+  +
+  \lambda\lVert\theta\rVert_2^2.
+\]
+Illegal logits are masked before a policy is used. Search visit counts are
+normalized over legal root actions to create $\pi$. The value target is the
+eventual game result, converted exactly once at the neural boundary.
+
+Most catastrophic loss problems were not caused by this equation. They came
+from feeding the equation targets expressed in the wrong coordinate system,
+perspective, action indexing, or sample distribution.
+
+\section{A serious but simple AlphaZero loop}
+
+\subsection{The loop}
+
+The production design remained conceptually small:
+
+\begin{lstlisting}[style=azcode]
+while time_is_left:
+    games = play_parallel_games(current_model)
+    replay.add(games)
+
+    train_current_model(replay)
+    save_model_and_optimizer()
+
+    if strength_check_is_due:
+        play_paired_match(current_model, reference_model)
+\end{lstlisting}
+
+There is no candidate-acceptance gate in the learning path. The latest trained
+model generates the next tranche. Scheduled matches report progress; they do
+not roll the actor backward. This avoids a noisy gate freezing learning or
+creating a two-model lifecycle that students cannot audit.
+
+\subsection{Parallel search changed throughput, not semantics}
+
+Actors advanced 32 games together and batched neural leaf evaluations on the
+GPU. Within one game, PUCT selection, expansion, backup, and root targets kept
+their ordinary meaning. Batching was treated as a scheduling optimization
+rather than a new search algorithm.
+
+This distinction paid off during diagnosis. A severe Player-1 collapse appeared
+at an 8/2 simulation budget in both sequential and batched implementations.
+Raising the budget to 64 simulations restored a 19--13 split. The defect was
+insufficient search, not batching.
+
+\begin{plainbox}
+\boxtitle{Portable principle}
+Build and test a slow reference search first. The optimized actor should agree
+with it on legal moves, terminal values, visit accounting, and fixed-network
+decisions. Benchmark speed only after semantic equivalence is established.
+\end{plainbox}
+
+\subsection{Playout-cap randomization spent search where labels mattered}
+
+Not every self-play move was stored. A minority of positions received the full
+search budget and became training targets; intervening moves used a smaller
+budget to advance games cheaply. In the serious schedule, about 25\% of turns
+were full-search targets.
+
+This trades target density for target quality and game throughput. It works
+when the cheap turns remain plausible enough to reach useful states and the
+full-search positions cover the game. Log target ply, player, outcome, and game
+phase. If full searches cluster accidentally, the replay buffer will inherit
+that blind spot.
+
+\subsection{Search capacity grew with the model}
+
+The schedule increased full/fast simulations from roughly 128/16 to 192/24 and
+then 256/32. Early networks do not justify the same search expense as later
+ones, but extremely shallow search can create self-confirming nonsense.
+
+A portable calibration procedure is:
+\begin{enumerate}
+  \item On a fixed checkpoint, sweep several search budgets.
+  \item Measure throughput, color balance, tactical score, policy entropy, and
+        head-to-head strength.
+  \item Choose the smallest budget before the strength curve clearly flattens.
+  \item Repeat after the network becomes materially stronger.
+\end{enumerate}
+
+\subsection{Exploration in self-play; controlled diversity in evaluation}
+
+Self-play added Dirichlet noise to root priors and sampled from visit counts
+during the first 12 plies. Later moves were selected more sharply. This creates
+varied openings while allowing games to become decisive.
+
+Evaluation removed root noise and stochastic move sampling. Diversity came
+from independently generated six-ply opening prefixes. Each opening was played
+twice with colors reversed:
+\[
+  \text{random opening}
+  \;+\;
+  \text{deterministic play}
+  \;+\;
+  \text{color reversal}.
+\]
+This protocol samples many positions without allowing move noise to dominate
+the strength estimate. The pair controls much of opening and first-player
+advantage. It is reproducible if the opening list is saved, without reusing one
+live random seed everywhere.
+
+\subsection{Strength checks measured what losses could not}
+
+Every five hours, the loop played a 40-game paired-opening match against a
+fixed reference. The run continued for the full budget even if several checks
+were flat; the ladder was evidence, not a stopping rule.
+
+Use validation loss to diagnose training distribution, overfitting, and
+serialization. Use games to measure playing strength. These quantities can
+move in opposite directions because:
+\begin{itemize}
+  \item policy targets are produced by changing searches;
+  \item replay is non-stationary and correlated;
+  \item stronger play may visit harder positions;
+  \item cross-entropy rewards matching visit distributions, not winning by
+        itself;
+  \item value calibration and move ranking can improve differently.
+\end{itemize}
+
+\section{Bug prevention: make contracts executable}
+
+\subsection{Tests worth writing before the first long run}
+\begin{enumerate}
+  \item \textbf{Reference rules.} Compare the optimized legal-action generator
+        with a literal, independently written version on thousands of random
+        states.
+  \item \textbf{Transition round trip.} For every legal action in sampled
+        states, make then unmake and compare complete snapshots.
+  \item \textbf{Action round trip.} Require
+        $\mathrm{decode}(\mathrm{encode}(a))=a$ for every legal action.
+  \item \textbf{Terminal semantics.} Hand-construct each terminal cause and
+        check both the winner and whether the player-to-move field changes.
+  \item \textbf{Perspective.} Evaluate color-swapped or mover-swapped copies and
+        verify the exact expected relation between relative and absolute value.
+  \item \textbf{Symmetry.} Transform state, legal actions, policy, and outcome;
+        invert the transform; require equality.
+  \item \textbf{Hand-computed PUCT.} Build tiny trees for both players and check
+        the chosen child, visits, $W$, and $Q$ after each backup.
+  \item \textbf{Neural masking.} Assert exactly zero probability on illegal
+        actions and unit probability mass over legal actions.
+  \item \textbf{Serialization.} Save and reload a trained model; compare
+        predictions and optimizer iteration/state, not just weights.
+  \item \textbf{Actor identity.} Hash the model used to create every tranche and
+        the model written after training. A completed update must change the
+        expected hash.
+\end{enumerate}
+
+\subsection{Symptom-to-test debugging table}
+
+\small
+\begin{longtable}{L{0.25\textwidth} L{0.34\textwidth} L{0.33\textwidth}}
+\toprule
+\sffamily\bfseries Symptom &
+\sffamily\bfseries Likely classes of cause &
+\sffamily\bfseries Fastest discriminating tests \\
+\midrule
+\endfirsthead
+\toprule
+\sffamily\bfseries Symptom &
+\sffamily\bfseries Likely classes of cause &
+\sffamily\bfseries Fastest discriminating tests \\
+\midrule
+\endhead
+One player collapses &
+Value sign, terminal turn switch, directional encoding, asymmetric search
+budget, missing symmetry. &
+Hand PUCT tests for both players; color-swapped tactical pairs; sequential
+versus batched search at a larger budget. \\
+\addlinespace
+Policy loss falls but play does not improve &
+Targets too weak, illegal-mask mismatch, replay overuse, identical actor,
+evaluation too noisy. &
+Hash checkpoints; inspect root targets; play fixed-position search sweeps; run a
+paired deterministic arena. \\
+\addlinespace
+Value is accurate on training but wrong in games &
+Perspective conversion, leakage between train/validation, correlated split,
+normalization-state mismatch. &
+Split by complete game; evaluate swapped copies; compare training and inference
+modes; reload before evaluation. \\
+\addlinespace
+Good tactics, terrible long games &
+Replay lacks strategic phases, search too shallow, fast-turn policy drifts,
+terminal reward sparse. &
+Histogram target plies and phases; label sampled states with a stronger search;
+increase budget on the same checkpoint. \\
+\addlinespace
+Two fresh evaluations are identical &
+Reused seeds, reused opening file, deterministic actor launch, identical
+checkpoint hashes. &
+Log opening hashes, first moves, process seeds, and model hashes before the
+match. \\
+\addlinespace
+Arena result is extreme or unstable &
+Color/opening bias, time forfeits, unequal hardware, too few independent
+openings, failures counted as losses. &
+Reverse colors, report failures separately, compare clocks and hardware, and
+use confidence intervals over opening pairs. \\
+\addlinespace
+Batched search disagrees with reference search &
+Virtual-loss accounting, duplicate expansion, stale priors, wrong backup order,
+state mutation. &
+Use a deterministic mock network; compare per-edge visits after each batch;
+hash state before and after search. \\
+\addlinespace
+Training suddenly stabilizes after restart &
+Optimizer state lost, learning rate reset or frozen, replay path changed. &
+Record optimizer iteration, learning rate, replay count, and a fixed prediction
+vector before and after restart. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Log enough to reconstruct a failure}
+
+For every training iteration, record:
+\begin{itemize}
+  \item actor checkpoint path and cryptographic hash;
+  \item optimizer iteration and learning rate;
+  \item new games, new positions, replay size, and training presentations;
+  \item full/fast search budgets and fraction of stored turns;
+  \item root-noise parameters and move-temperature schedule;
+  \item outcomes by player, game length, target ply, policy entropy, and search
+        value;
+  \item policy loss, value loss, finite-value checks, and gradient or weight
+        norms if available;
+  \item arena opening IDs, colors, failures, clocks, hardware, and result.
+\end{itemize}
+
+Do not turn logging into a second framework. A CSV row and a short text summary
+per iteration are sufficient if field names and units are stable.
+
+\subsection{Use continuous diagnostics, not brittle tactical gates}
+
+The final tactical suite contained 20 exact, balanced positions rather than six
+hand-picked puzzles. Its value score was continuous:
+\[
+  \frac{1}{20}\sum_{i=1}^{20}
+  v_{\mathrm{abs}}(s_i)\,z_{\mathrm{abs}}(s_i).
+\]
+Positive values mean the prediction tends to agree with the exact outcome;
+magnitude reflects confidence. Color-swapped copies test a perspective
+invariant; they are not additional independent evidence.
+
+A tactical suite is a probe, not a complete strength measure. Keep the raw
+per-position outputs so one easy family cannot hide a systematic failure.
+
+\section{Adapting the method to another environment}
+
+\subsection{Decide the value object before writing MCTS}
+
+For a two-player zero-sum game, a scalar value is enough. Choose either a fixed
+global viewpoint or a mover-relative viewpoint and derive selection and backup
+algebra on paper.
+
+For a general-sum or multiplayer game, a scalar current-player value can discard
+information. Store a value vector
+\[
+  \mathbf{v}(s) = (v_1(s),\ldots,v_k(s))
+\]
+and let the parent choose using the component belonging to its decision maker.
+Chance nodes use expectations rather than maximization. In partially observable
+games, the network input and tree state must represent an information state;
+tests must explicitly prevent hidden-state leakage.
+
+\subsection{Canonicalize only exact equivalences}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{0.21\textwidth} Y Y}
+\toprule
+\sffamily\bfseries Environment property &
+\sffamily\bfseries Good adaptation &
+\sffamily\bfseries Required test \\
+\midrule
+Players are interchangeable under a known transform &
+Canonicalize to the mover or a fixed seat. &
+Transform state, actions, and rewards; invert and recover the original sample. \\
+Board has geometric symmetries &
+Sample a group element during training or ensemble at inference if justified. &
+Legal actions and transition results commute with every transform. \\
+Rules contain asymmetric terrain, roles, or objectives &
+Keep the asymmetry in the observation; do not augment it away. &
+Construct a counterexample position where the proposed transform would change
+the game. \\
+Stochastic transitions &
+Represent chance outcomes explicitly or train on sampled returns. &
+Check probability mass, reproducibility under controlled RNG, and unbiased
+backup estimates. \\
+Very long horizon &
+Use denser diagnostics, search-budget scheduling, and possibly reward/value
+normalization. &
+Test terminal rewards separately from any shaped reward and inspect phase
+coverage in replay. \\
+Continuous actions &
+Replace full policy enumeration with a suitable proposal/search method. &
+Test bounds, density normalization, sampling, and action-transform Jacobians if
+needed. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Match data generation to the environment's difficulty}
+
+The successful recipe used rollout-PUCT pretraining because Breakthrough had a
+cheap legal simulator and meaningful shallow tactics. Other environments may
+need:
+\begin{itemize}
+  \item demonstrations to reach rare rewarding states;
+  \item curriculum levels to control horizon or branching factor;
+  \item an exact solver for small states;
+  \item a heuristic or model-predictive controller as teacher;
+  \item prioritized scenario generation for safety-critical or rare events.
+\end{itemize}
+
+Whichever source is chosen, measure the resulting policy, state coverage,
+outcome balance, and effective sampling weights. One million rows says little
+if they contain 10,000 copies of a few trajectories.
+
+\subsection{Adapt evaluation to the source of variance}
+
+Paired color-reversed openings are natural for deterministic, alternating,
+two-player board games. In another environment, pair or stratify over the
+largest nuisance variables:
+\begin{itemize}
+  \item random seeds and initial conditions in stochastic control;
+  \item maps, scenarios, and traffic patterns in simulators;
+  \item roles or teams in asymmetric games;
+  \item demand regimes and time periods in operations problems.
+\end{itemize}
+
+Keep policy stochasticity out of evaluation unless stochastic execution is part
+of the deployed agent. Report failures and timeouts separately from legitimate
+losses.
+
+\section{A staged implementation protocol}
+
+The following order minimizes the cost of being wrong. Each gate should have a
+written pass condition and a saved artifact or test result.
+
+\begin{enumerate}
+  \item \textbf{Environment gate.} Implement the smallest faithful ruleset, a
+        literal reference transition/legal-action function, terminal rewards,
+        and state cloning or make/unmake. Pass differential and round-trip
+        tests.
+  \item \textbf{Action and value gate.} Define action indexing, neural
+        canonicalization, the public search value convention, and parent
+        utility. Exhaust action round trips and player/symmetry metamorphisms.
+  \item \textbf{Non-neural search gate.} Use uniform legal priors and a rollout
+        or exact evaluator. Find immediate wins for every player, preserve the
+        input state, and verify hand-computed $Q$ selection.
+  \item \textbf{Network gate.} Train on solver-labelled positions.
+        Require held-out learning, legal masking, save/load equality, and
+        perspective consistency.
+  \item \textbf{Teacher data gate.} Generate a reconstructable search
+        corpus. Audit game uniqueness, seat balance, terminal legality, target
+        mass, and validation split by whole episode.
+  \item \textbf{One-cycle gate.} From one checkpoint: generate, add to replay,
+        train with preserved optimizer state, save, reload, and generate again.
+        Assert the actor hash changed and all metrics are finite.
+  \item \textbf{Small-environment learning gate.} Run enough cycles to beat
+        pretraining and fixed baselines in paired arenas. Diagnose regressions
+        before scaling.
+  \item \textbf{Native target gate.} Create a native network and new data.
+        Transfer only measured process choices. Calibrate search budget before
+        serious compute.
+  \item \textbf{Serious-run gate.} Fix a compute budget, replay exposure, search
+        schedule, exploration policy, strength-check protocol, recovery plan,
+        and artifact paths before submission.
+\end{enumerate}
+
+\begin{keybox}
+\boxtitle{Rule for expensive jobs}
+Every expensive run should answer a question that a cheaper run cannot answer.
+If the next 20 GPU-hours are merely checking whether action indices are correct,
+the project has skipped a gate.
+\end{keybox}
+
+\section{The successful Breakthrough recipe}
+
+These settings describe the successful regime. The relationships are more
+portable than the exact numbers.
+
+\small
+\begin{longtable}{L{0.20\textwidth} L{0.25\textwidth} L{0.42\textwidth}}
+\toprule
+\sffamily\bfseries Component &
+\sffamily\bfseries Breakthrough setting &
+\sffamily\bfseries Portable principle \\
+\midrule
+\endfirsthead
+\toprule
+\sffamily\bfseries Component &
+\sffamily\bfseries Breakthrough setting &
+\sffamily\bfseries Portable principle \\
+\midrule
+\endhead
+Neural input &
+Two mover-relative planes. &
+Canonicalize only under an exact, reversible transform for state, action, and
+reward. \\
+Network &
+48 filters, 3 residual blocks, no BatchNorm. &
+Use the smallest model that passes supervised and save/load gates. Enlarge only
+after data and search are credible. \\
+Pretraining &
+10,000 rollout-PUCT games; 421,561 stored positions. &
+Begin neural self-play with plausible search targets; measure a data-size curve
+rather than guessing corpus sufficiency. \\
+Replay &
+Recent FIFO, about 25,000 neural positions. &
+Balance on-policy freshness against trajectory and skill diversity. \\
+Optimization &
+Batch 128, reuse ratio about 2, Adam retained, learning rate
+$2.5\times10^{-4}$. &
+Track presentations per fresh position and preserve optimizer state. \\
+Augmentation &
+Random left-right reflection after sampling. &
+Store real samples once; transform state and policy together during training. \\
+Self-play exploration &
+Root Dirichlet noise and visit sampling for the first 12 plies. &
+Explore early enough to diversify trajectories, then sharpen to finish games. \\
+Parallelism &
+32 games advanced together; neural leaves batched. &
+Batch inference without changing search semantics; compare with a slow
+reference implementation. \\
+Search economy &
+25\% full-search stored targets; fast intervening turns. &
+Spend computation on the positions that become labels; audit phase coverage. \\
+Search schedule &
+128/16, then 192/24, then 256/32 full/fast simulations. &
+Calibrate the minimum useful budget on a fixed checkpoint and revisit as the
+model improves. \\
+Evaluation &
+40 games every 5 hours; distinct six-ply openings, colors reversed, no search
+noise. &
+Use deterministic agents over diverse paired initial conditions. Keep training
+independent of a noisy acceptance gate. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Anti-patterns to avoid}
+\begin{itemize}
+  \item Do not change value perspective in several modules.
+  \item Do not apply a symmetry to observations without applying its exact
+        action permutation to policy targets.
+  \item Do not infer corpus size from augmented presentations; count unique
+        stored states and complete games.
+  \item Do not call a random position split validation when adjacent states
+        from the same game appear in both sets.
+  \item Do not treat a near-zero learning rate as a cure for bad labels.
+  \item Do not conclude that batching is wrong before repeating the test at a
+        useful search budget.
+  \item Do not let failed games, timeouts, or identical checkpoints enter an
+        arena score silently.
+  \item Do not reuse one fixed seed throughout production and mistake
+        reproducibility for diversity.
+  \item Do not scale to the target environment because a reduced architecture
+        happens to accept padded inputs.
+  \item Do not add gates, rollback rules, or distributed services faster than
+        you can test their identities and state transitions.
+\end{itemize}
+
+\section{Readiness checklist}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{0.28\textwidth} Y}
+\toprule
+\sffamily\bfseries Before launching &
+\sffamily\bfseries Evidence required \\
+\midrule
+Rules and state &
+Differential legal-action tests; complete make/unmake snapshots; all terminal
+causes covered. \\
+Action representation &
+Exhaustive legal encode/decode round trips; legal-mask agreement. \\
+Perspective &
+One written convention; both-player hand PUCT tests; swapped-position
+metamorphic tests. \\
+Symmetry &
+State/action/policy/reward transform tests and inverse recovery. \\
+Network &
+Exact-label supervised learning; illegal probability zero; save/load prediction
+and optimizer equality. \\
+Data &
+Unique game count, position count, outcome/seat balance, whole-game split,
+effective weights, and augmentation policy recorded. \\
+Search &
+Immediate tactics for each player; state preserved; fixed-checkpoint budget
+sweep; reference versus batched agreement. \\
+Training cycle &
+Actor hash, replay growth, finite losses, optimizer continuity, and changed
+post-update hash. \\
+Evaluation &
+Distinct initial conditions, pairing/stratification, equal resources, failure
+count, model hashes, and uncertainty interval. \\
+Recovery &
+Atomic checkpoint, replay location, iteration log, resume test, and known last
+complete unit of work. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{What we would do next}
+
+Declaring success does not end the experiment. The remaining 50-hour run maps
+the learning curve: whether improvement continues, saturates, oscillates, or
+regresses as the replay distribution moves.
+
+The most valuable follow-up is not immediately a larger network. It is a small
+ablation matrix around the successful recipe:
+\begin{itemize}
+  \item hold the checkpoint fixed and compare search budgets;
+  \item train matched short continuations with and without playout-cap
+        randomization;
+  \item compare two replay windows at equal fresh-position reuse;
+  \item compare retained and reset optimizer state;
+  \item repeat arenas across hardware with simulation-count rather than
+        wall-clock limits.
+\end{itemize}
+
+These experiments turn causal hypotheses into measured claims. They also give
+students a more useful result than a claim that the final settings worked: a
+picture of which parts are robust and which depend on the environment and
+compute regime.
+
+\section{Conclusion}
+
+The successful project was not rescued by a mysterious neural-network trick.
+It became learnable when the entire feedback loop agreed with itself:
+\begin{enumerate}
+  \item the environment produced correct states and rewards;
+  \item action, symmetry, and perspective transformations were explicit;
+  \item search used the value convention intended by training;
+  \item the starting data were large and competent enough to matter;
+  \item replay and optimization exposed fresh targets at a controlled rate;
+  \item parallelism accelerated inference without redefining search;
+  \item self-play explored, while evaluation controlled its sources of noise;
+  \item strength was measured by paired games and checkpoint identity was
+        verified.
+\end{enumerate}
+
+\begin{keybox}
+\boxtitle{The transferable lesson}
+An AlphaZero implementation is a circular scientific instrument. Every arrow in
+the circle needs a unit, a viewpoint, an identity, and a test. Once those
+contracts are trustworthy, the sophisticated mathematics can do its job. Before
+that, more compute simply makes the wrong experiment run faster.
+\end{keybox}
+
+\appendix
+\section{Failure timeline and evidence}
+\begin{itemize}
+  \item A prior continuous 8x8 run was invalidated by symmetry-state loss across
+        learner processes and by an omitted inference ensemble.
+  \item A large-data diagnosis found rare teacher examples with roughly 71 times
+        the per-position weight of neural examples and effective batches near
+        18 despite a nominal size of 256.
+  \item A supposedly meaningful arena was shown invalid when both checkpoint
+        hashes were identical; another was invalidated by time forfeits.
+  \item The clean-room project established 5x5 correctness and learning before
+        creating native 8x8 weights and data.
+  \item The 1,000-game pretrained model lost 24--76 to the 10,000-game model,
+        showing that corpus scale mattered in this regime.
+  \item Phase-6 iteration 5 beat the raw pretrained initializer 52--8 but lost
+        2--58 to alpha-beta on RTX 2080-class hardware.
+  \item Serious iteration 15 beat phase-6 iteration 5 by 39--1.
+  \item Serious iteration 26 beat iteration 15 by 36--4.
+  \item Serious iteration 26 beat depth-4 alpha-beta 49--1 on an L40S, using 25
+        distinct six-ply openings with colors reversed.
+\end{itemize}
+
+\section{Interpretive limits}
+
+The strongest evidence in this document is comparative, not absolute. The
+iteration ladder uses controlled paired openings. The final alpha-beta result
+is decisive for its recorded protocol, but its magnitude cannot be compared
+directly with the earlier phase-6 match because the hardware differed under a
+wall-clock time control.
+
+The project did not run a factorial ablation over all serious-loop ingredients.
+Claims about why the bundle worked are therefore engineering judgments informed
+by failed runs, unit tests, diagnostics, and measured matches. They should guide
+the next experiment, not substitute for it.
+
+Finally, Breakthrough is deterministic, perfect-information, alternating,
+two-player, and zero-sum. The value algebra, evaluation pairing, and canonical
+player transform exploit those facts. Section 7 describes the changes required
+when an environment does not share them.
+
+\end{document}
