@@ -206,3 +206,17 @@ under the unchanged recipe.
   dependent final will write under the corresponding job-34359 directory.
 - Job 34358 retains its submitted 12-hour limit. The pending job 34359 was
   extended to 24 hours after Slurm allocated the first job to the older GPU.
+
+## GUI position setup and alpha-beta scoring follow-up
+
+- New GUI games may apply a fresh random nonterminal opening of a configurable
+  number of plies. The opening moves remain visible and replayable. Changing a
+  player selector now replaces that side's agent without changing the board or
+  history, which allows a position to be set up by hand before AI play.
+- The alpha-beta terminal sign and arena color attribution were correct, but
+  its nonterminal evaluator clipped every sufficiently large score to `0.99`
+  or `-0.99`. That protected terminal priority at the cost of erasing useful
+  distinctions between strong positions. Alpha-beta now uses positive or
+  negative infinity for proven wins and losses and leaves the finite weighted
+  heuristic uncompressed. Historical alpha-beta results used the old clipped
+  evaluator; the neural-only jobs 34358 and 34359 are unaffected.
