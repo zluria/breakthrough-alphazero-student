@@ -18,6 +18,7 @@ if not exist "checkpoints\phase8" (
 )
 
 ".venv\Scripts\python.exe" -m breakthrough_zero.cli gui ^
+  --checkpoint "checkpoints\phase8\iteration-0107.h5" ^
   --models-dir "checkpoints\phase8" ^
   --board-size 8 ^
   --simulations 256

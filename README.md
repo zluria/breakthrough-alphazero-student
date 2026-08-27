@@ -104,9 +104,9 @@ exploration bonus, and selection score for every legal move. Alpha-beta instead
 reports its completed depth, node count, and thinking time. The move list keeps
 the complete game visible.
 
-On Windows, `play_gui.bat` discovers every 8x8 model stored below
-`checkpoints/phase8`. The model files are experiment artifacts and are not
-tracked by Git.
+On Windows, `play_gui.bat` selects the final iteration by default and discovers
+every 8x8 model stored below `checkpoints/phase8`. The model files are
+experiment artifacts and are not tracked by Git.
 
 ```bash
 breakthrough-zero gui \
