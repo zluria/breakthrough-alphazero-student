@@ -50,6 +50,22 @@
     ["iteration-15", 7, 20],
     ["rollout-puct", 0, 20]
   ],
+  "elo_after_100_passes": {
+    "initial_rating": 1500,
+    "k_factor": 32,
+    "game_order": "sorted report filenames, recorded game order",
+    "ratings": [
+      ["iteration-46", 1991.5],
+      ["alpha-beta", 1733.5],
+      ["iteration-36", 1711.3],
+      ["iteration-26", 1569.5],
+      ["iteration-15", 1439.4],
+      ["rollout-puct", 554.8]
+    ],
+    "largest_change_in_pass_100": 1.503307,
+    "converged": false,
+    "note": "Rollout PUCT scored 0-20, so repeated unregularized Elo updates have no finite fixed point."
+  },
   "artifact_audit": {
     "pairing_reports": 15,
     "games": 60,

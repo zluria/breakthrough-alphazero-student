@@ -166,3 +166,19 @@ under the unchanged recipe.
   fair on one node but is not portable across hardware, because neural PUCT's
   search count changes with GPU throughput. Cross-hardware scores must not be
   interpreted as a hardware-neutral measure of model improvement.
+- Slurm job 34242 played a fixed-search double round robin among the phase-6
+  starting model and accepted iterations 15, 26, 36, 46, 56, 66, and 76. Every
+  pairing used one fresh six-ply opening with colors reversed and exactly 64
+  PUCT simulations per move. All 56 games and 28 openings were distinct, with
+  no failures or pairing errors. Iteration 56 led at 12/14, followed by
+  iteration 76 at 11/14, iterations 36 and 66 at 10/14, iteration 46 at 6/14,
+  iteration 26 at 5/14, iteration 15 at 2/14, and the start at 0/14. With only
+  two games per pairing, individual reversals such as iteration 56 beating
+  iteration 76 by 2-0 are expected sampling noise rather than promotion tests.
+- Starting all ratings at 1500 and replaying each tournament 100 times with the
+  ordinary sequential Elo formula and K=32 gives 2088.8, 1985.9, 1899.6,
+  1884.3, 1547.5, 1435.2, 854.3, and 304.4 for the eight models in the order
+  56, 76, 36, 66, 46, 26, 15, and start. These are the requested 100-pass
+  values, not a converged fixed point: the start went 0-14 and iteration 56 was
+  undefeated, so unregularized Elo has no finite optimum. The largest rating
+  movement in pass 100 was still 2.816 points.
