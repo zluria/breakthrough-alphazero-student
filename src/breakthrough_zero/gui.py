@@ -1,16 +1,24 @@
-"""Local graphical play with the final PUCT statistics for each move."""
+"""Graphical play between humans, search baselines, and saved networks."""
 
 import math
+import os
+import time
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 
+import keras
+
+from .agents import AlphaBetaAgent
 from .game import Breakthrough, PLAYER_1, PLAYER_2
 from .neural import GameNetwork, NeuralBoundary
-from .puct import PUCTPlayer, best_action
+from .puct import PUCTPlayer, RolloutEvaluator, best_action
 
 
-CELL_SIZE = 72
+CELL_SIZE = 64
 BOARD_MARGIN = 24
+HUMAN = "Human"
+ALPHA_BETA = "Alpha-beta"
+ROLLOUT_MCTS = "Vanilla MCTS (rollouts)"
 
 
 def move_text(game, move):
@@ -21,41 +29,165 @@ def move_text(game, move):
     return names[0] + "-" + names[1]
 
 
+def find_checkpoints(directory):
+    """Return the Keras model files below a directory."""
+
+    paths = []
+    if not directory or not os.path.isdir(directory):
+        return paths
+    for current_directory, unused_directories, filenames in os.walk(directory):
+        for filename in filenames:
+            lower_name = filename.lower()
+            if lower_name.endswith((".keras", ".h5", ".hdf5")):
+                path = os.path.join(current_directory, filename)
+                paths.append(os.path.abspath(path))
+    paths.sort()
+    return paths
+
+
+def checkpoint_label(path, model_directory):
+    """Use a short path in the player selector while retaining unique names."""
+
+    if model_directory:
+        relative = os.path.relpath(path, model_directory)
+    else:
+        relative = os.path.basename(path)
+    if relative == ".." or relative.startswith(".." + os.sep):
+        relative = os.path.basename(path)
+    name = os.path.splitext(relative)[0]
+    return "Neural: " + name.replace(os.sep, "/")
+
+
+def checkpoint_choices(paths, model_directory):
+    """Map the names shown in the GUI to their saved model files."""
+
+    choices = {}
+    for path in paths:
+        label = checkpoint_label(path, model_directory)
+        if label in choices:
+            label = "Neural: " + os.path.abspath(path)
+        choices[label] = os.path.abspath(path)
+    return choices
+
+
 class GameWindow:
-    def __init__(self, root, network, simulations):
+    def __init__(
+        self,
+        root,
+        board_size,
+        model_choices,
+        simulations,
+        loaded_networks=None,
+    ):
         self.root = root
-        self.network = network
+        self.board_size = board_size
+        self.model_choices = model_choices
+        self.networks = loaded_networks or {}
         self.game = None
-        self.human_player = PLAYER_1
+        self.players = {}
         self.selected = None
+        self.last_move = None
         self.thinking = False
+        self.running = False
+        self.pending_move = None
+
         self.simulation_text = tk.StringVar(value=str(simulations))
-        self.computer = PUCTPlayer(NeuralBoundary(network), simulations, 1.5)
+        self.alpha_beta_time_text = tk.StringVar(value="0.1")
+        self.player_1_text = tk.StringVar(value=HUMAN)
+        neural_names = list(model_choices)
+        if neural_names:
+            player_2 = neural_names[0]
+        else:
+            player_2 = ALPHA_BETA
+        self.player_2_text = tk.StringVar(value=player_2)
 
-        root.title("Breakthrough AlphaZero")
+        root.title("Breakthrough arena")
         root.configure(padx=14, pady=14)
+        root.columnconfigure(0, weight=1)
 
-        controls = ttk.Frame(root)
+        self.make_controls()
+        self.make_board()
+        self.make_report()
+
+        self.status = tk.StringVar()
+        ttk.Label(root, textvariable=self.status, font=("Segoe UI", 11)).grid(
+            row=2, column=0, columnspan=2, sticky="w", pady=(10, 0)
+        )
+        self.new_game()
+
+    def player_options(self):
+        return [HUMAN, ALPHA_BETA, ROLLOUT_MCTS] + list(self.model_choices)
+
+    def make_controls(self):
+        controls = ttk.Frame(self.root)
         controls.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
-        ttk.Button(
-            controls, text="New game as X", command=lambda: self.new_game(PLAYER_1)
-        ).pack(side="left", padx=(0, 8))
-        ttk.Button(
-            controls, text="New game as O", command=lambda: self.new_game(PLAYER_2)
-        ).pack(side="left")
-        simulation_choices = ttk.Combobox(
+
+        ttk.Label(controls, text="Player 1 (X):").grid(row=0, column=0, sticky="w")
+        self.player_1_box = ttk.Combobox(
+            controls,
+            textvariable=self.player_1_text,
+            values=self.player_options(),
+            state="readonly",
+            width=34,
+        )
+        self.player_1_box.grid(row=0, column=1, sticky="w", padx=(5, 18))
+        self.player_1_box.bind(
+            "<<ComboboxSelected>>", lambda unused_event: self.new_game()
+        )
+
+        ttk.Label(controls, text="Player 2 (O):").grid(row=0, column=2, sticky="w")
+        self.player_2_box = ttk.Combobox(
+            controls,
+            textvariable=self.player_2_text,
+            values=self.player_options(),
+            state="readonly",
+            width=34,
+        )
+        self.player_2_box.grid(row=0, column=3, sticky="w", padx=(5, 0))
+        self.player_2_box.bind(
+            "<<ComboboxSelected>>", lambda unused_event: self.new_game()
+        )
+
+        ttk.Label(controls, text="MCTS simulations:").grid(
+            row=1, column=0, sticky="w", pady=(8, 0)
+        )
+        ttk.Combobox(
             controls,
             textvariable=self.simulation_text,
-            values=(25, 50, 100, 200),
-            state="readonly",
-            width=5,
-        )
-        simulation_choices.pack(side="right")
-        ttk.Label(controls, text="PUCT simulations: ").pack(side="right")
+            values=(25, 50, 100, 200, 256, 500, 1000),
+            width=7,
+        ).grid(row=1, column=1, sticky="w", padx=(5, 18), pady=(8, 0))
 
-        board_pixels = network.board_size * CELL_SIZE + BOARD_MARGIN
+        ttk.Label(controls, text="Alpha-beta seconds:").grid(
+            row=1, column=2, sticky="w", pady=(8, 0)
+        )
+        ttk.Combobox(
+            controls,
+            textvariable=self.alpha_beta_time_text,
+            values=(0.05, 0.1, 0.25, 0.5, 1.0),
+            width=7,
+        ).grid(row=1, column=3, sticky="w", padx=(5, 0), pady=(8, 0))
+
+        buttons = ttk.Frame(controls)
+        buttons.grid(row=2, column=0, columnspan=4, sticky="w", pady=(9, 0))
+        ttk.Button(buttons, text="New game", command=self.new_game).pack(
+            side="left", padx=(0, 7)
+        )
+        ttk.Button(buttons, text="Swap players", command=self.swap_players).pack(
+            side="left", padx=(0, 18)
+        )
+        ttk.Button(buttons, text="Play", command=self.play).pack(
+            side="left", padx=(0, 7)
+        )
+        ttk.Button(buttons, text="Pause", command=self.pause).pack(
+            side="left", padx=(0, 7)
+        )
+        ttk.Button(buttons, text="Step", command=self.step).pack(side="left")
+
+    def make_board(self):
+        board_pixels = self.board_size * CELL_SIZE + BOARD_MARGIN
         self.canvas = tk.Canvas(
-            root,
+            self.root,
             width=board_pixels,
             height=board_pixels,
             highlightthickness=0,
@@ -63,18 +195,21 @@ class GameWindow:
         self.canvas.grid(row=1, column=0, sticky="n")
         self.canvas.bind("<Button-1>", self.board_clicked)
 
-        report = ttk.Frame(root)
+    def make_report(self):
+        report = ttk.Frame(self.root)
         report.grid(row=1, column=1, sticky="n", padx=(18, 0))
+
+        self.search_title = tk.StringVar(value="Search after the last computer move")
         ttk.Label(
             report,
-            text="PUCT after the network's last search",
+            textvariable=self.search_title,
             font=("Segoe UI", 11, "bold"),
         ).pack(anchor="w")
         self.summary = tk.StringVar(value="No search yet.")
         ttk.Label(report, textvariable=self.summary).pack(anchor="w", pady=(2, 6))
 
         columns = ("move", "prior", "visits", "q", "u", "score")
-        self.table = ttk.Treeview(report, columns=columns, show="headings", height=15)
+        self.table = ttk.Treeview(report, columns=columns, show="headings", height=13)
         headings = ("Move", "P", "N", "Q (P1)", "U", "player·Q + U")
         widths = (75, 60, 55, 75, 65, 105)
         for index in range(len(columns)):
@@ -85,39 +220,157 @@ class GameWindow:
         ttk.Label(
             report,
             text=(
-                "P is the neural prior. N is the visit count. Q is absolute "
-                "from Player 1's viewpoint. U is the exploration bonus."
+                "P is the policy prior; it is uniform for vanilla MCTS. "
+                "N is the visit count. Q is absolute from Player 1's viewpoint, "
+                "and U is the exploration bonus."
             ),
-            wraplength=430,
+            wraplength=440,
             justify="left",
-        ).pack(anchor="w", pady=(7, 0))
+        ).pack(anchor="w", pady=(7, 12))
 
-        self.status = tk.StringVar()
-        ttk.Label(root, textvariable=self.status, font=("Segoe UI", 11)).grid(
-            row=2, column=0, columnspan=2, sticky="w", pady=(10, 0)
+        ttk.Label(report, text="Moves", font=("Segoe UI", 11, "bold")).pack(
+            anchor="w"
         )
-        self.new_game(PLAYER_1)
+        move_frame = ttk.Frame(report)
+        move_frame.pack(fill="x", pady=(3, 0))
+        move_columns = ("ply", "player", "agent", "move", "seconds")
+        self.move_table = ttk.Treeview(
+            move_frame,
+            columns=move_columns,
+            show="headings",
+            height=9,
+        )
+        move_headings = ("Ply", "Side", "Player", "Move", "Time")
+        move_widths = (42, 48, 180, 75, 62)
+        for index in range(len(move_columns)):
+            self.move_table.heading(move_columns[index], text=move_headings[index])
+            self.move_table.column(
+                move_columns[index], width=move_widths[index], anchor="center"
+            )
+        move_scrollbar = ttk.Scrollbar(
+            move_frame, orient="vertical", command=self.move_table.yview
+        )
+        self.move_table.configure(yscrollcommand=move_scrollbar.set)
+        self.move_table.pack(side="left")
+        move_scrollbar.pack(side="right", fill="y")
 
-    def new_game(self, human_player):
-        self.game = Breakthrough(self.network.board_size, 1)
-        self.human_player = human_player
+    def selected_name(self, player):
+        if player == PLAYER_1:
+            return self.player_1_text.get()
+        return self.player_2_text.get()
+
+    def has_human(self):
+        return HUMAN in (self.player_1_text.get(), self.player_2_text.get())
+
+    def read_settings(self):
+        simulations = int(self.simulation_text.get())
+        move_seconds = float(self.alpha_beta_time_text.get())
+        if simulations < 1:
+            raise ValueError("MCTS simulations must be positive")
+        if move_seconds <= 0:
+            raise ValueError("alpha-beta seconds must be positive")
+        return simulations, move_seconds
+
+    def load_network(self, name):
+        path = self.model_choices[name]
+        if path not in self.networks:
+            self.status.set("Loading " + name + "...")
+            self.root.update_idletasks()
+            model = keras.models.load_model(path, compile=False)
+            board_size = int(model.input_shape[1])
+            self.networks[path] = GameNetwork(board_size, model=model)
+        network = self.networks[path]
+        if network.board_size != self.board_size:
+            raise ValueError(
+                name
+                + " uses a "
+                + str(network.board_size)
+                + "x"
+                + str(network.board_size)
+                + " board, but this window uses "
+                + str(self.board_size)
+                + "x"
+                + str(self.board_size)
+            )
+        return network
+
+    def make_player(self, name, simulations, move_seconds):
+        if name == HUMAN:
+            return None
+        if name == ALPHA_BETA:
+            return AlphaBetaAgent(4, move_seconds)
+        if name == ROLLOUT_MCTS:
+            return PUCTPlayer(RolloutEvaluator(), simulations, 1.5)
+        network = self.load_network(name)
+        return PUCTPlayer(NeuralBoundary(network), simulations, 1.5)
+
+    def new_game(self):
+        self.pause()
+        try:
+            simulations, move_seconds = self.read_settings()
+            players = {}
+            players[PLAYER_1] = self.make_player(
+                self.player_1_text.get(), simulations, move_seconds
+            )
+            players[PLAYER_2] = self.make_player(
+                self.player_2_text.get(), simulations, move_seconds
+            )
+        except (OSError, ValueError) as error:
+            messagebox.showerror("Cannot start game", str(error))
+            self.status.set("Choose compatible players and start a new game.")
+            return
+
+        self.players = players
+        self.game = Breakthrough(self.board_size)
         self.selected = None
+        self.last_move = None
         self.thinking = False
+        self.clear_search()
+        for item in self.move_table.get_children():
+            self.move_table.delete(item)
+        self.draw_board()
+        self.continue_game()
+
+    def swap_players(self):
+        first = self.player_1_text.get()
+        self.player_1_text.set(self.player_2_text.get())
+        self.player_2_text.set(first)
+        self.new_game()
+
+    def clear_search(self):
         for item in self.table.get_children():
             self.table.delete(item)
+        self.search_title.set("Search after the last computer move")
         self.summary.set("No search yet.")
-        if human_player == PLAYER_1:
-            self.status.set("You are X. Select a pawn, then its destination.")
-        else:
-            self.status.set("You are O. The network moves first.")
-        self.draw_board()
-        if self.game.player_to_move != self.human_player:
-            self.root.after(100, self.computer_move)
+
+    def play(self):
+        if self.game is None or self.game.status() is not None:
+            return
+        self.running = True
+        self.continue_game()
+
+    def pause(self):
+        self.running = False
+        if self.pending_move is not None:
+            self.root.after_cancel(self.pending_move)
+            self.pending_move = None
+            self.thinking = False
+        if self.game is not None and self.game.status() is None:
+            self.set_turn_status()
+
+    def step(self):
+        if self.game is None or self.game.status() is not None:
+            return
+        self.running = False
+        if self.selected_name(self.game.player_to_move) == HUMAN:
+            self.set_turn_status()
+            return
+        self.schedule_computer_move(20)
 
     def board_clicked(self, event):
-        if self.thinking or self.game.status() is not None:
+        if self.game is None or self.thinking or self.game.status() is not None:
             return
-        if self.game.player_to_move != self.human_player:
+        if self.selected_name(self.game.player_to_move) != HUMAN:
             return
         col = (event.x - BOARD_MARGIN) // CELL_SIZE
         row = (event.y - BOARD_MARGIN) // CELL_SIZE
@@ -128,8 +381,9 @@ class GameWindow:
         self.square_clicked(self.game.square(row, col))
 
     def square_clicked(self, square):
+        player = self.game.player_to_move
         if self.selected is None:
-            if self.game.board[square] == self.human_player:
+            if self.game.board[square] == player:
                 self.selected = square
                 self.status.set("Now select a highlighted destination.")
                 self.draw_board()
@@ -137,47 +391,115 @@ class GameWindow:
 
         move = (self.selected, square)
         if move in self.game.legal_moves():
+            name = move_text(self.game, move)
+            self.record_move(player, HUMAN, name, None)
             self.game.make_move(move)
+            self.last_move = move
             self.selected = None
             self.draw_board()
-            if self.game.status() is not None:
-                self.show_winner()
-            else:
-                self.status.set("The network is thinking...")
-                self.thinking = True
-                self.root.after(50, self.computer_move)
+            self.continue_game()
             return
 
-        if self.game.board[square] == self.human_player:
+        if self.game.board[square] == player:
             self.selected = square
             self.status.set("Now select a highlighted destination.")
         else:
             self.status.set("That is not a legal destination.")
         self.draw_board()
 
-    def computer_move(self):
-        if self.game.status() is not None:
+    def schedule_computer_move(self, delay):
+        if self.thinking or self.pending_move is not None:
             return
         self.thinking = True
-        self.status.set("The network is thinking...")
+        self.pending_move = self.root.after(delay, self.computer_move)
+
+    def computer_move(self):
+        self.pending_move = None
+        if self.game.status() is not None:
+            self.thinking = False
+            return
+
+        player = self.game.player_to_move
+        name = self.selected_name(player)
+        agent = self.players[player]
+        if agent is None:
+            self.thinking = False
+            self.set_turn_status()
+            return
+
+        try:
+            simulations, move_seconds = self.read_settings()
+        except ValueError as error:
+            self.thinking = False
+            messagebox.showerror("Invalid search setting", str(error))
+            return
+
+        self.status.set(name + " is thinking...")
         self.root.update_idletasks()
+        started = time.perf_counter()
 
-        self.computer.simulations = int(self.simulation_text.get())
-        result = self.computer.search(self.game)
-        action = best_action(result)
-        move = self.game.decode(action)
-        name = move_text(self.game, move)
-        self.show_search(result, action)
+        if name == ALPHA_BETA:
+            agent.time_limit_s = move_seconds
+            move = agent.choose_move(self.game)
+            elapsed = time.perf_counter() - started
+            self.show_alpha_beta(agent, move, elapsed)
+        else:
+            agent.simulations = simulations
+            result = agent.search(self.game)
+            elapsed = time.perf_counter() - started
+            action = best_action(result)
+            move = self.game.decode(action)
+            self.show_search(result, action, name, elapsed)
+
+        text = move_text(self.game, move)
+        self.record_move(player, name, text, elapsed)
         self.game.make_move(move)
-
+        self.last_move = move
+        self.selected = None
         self.thinking = False
         self.draw_board()
+        self.continue_game()
+
+    def record_move(self, player, name, move_name, elapsed):
+        ply = len(self.game.history) + 1
+        symbol = "X" if player == PLAYER_1 else "O"
+        if elapsed is None:
+            seconds = ""
+        else:
+            seconds = "%.2fs" % elapsed
+        self.move_table.insert(
+            "", "end", values=(ply, symbol, name, move_name, seconds)
+        )
+        children = self.move_table.get_children()
+        if children:
+            self.move_table.see(children[-1])
+
+    def continue_game(self):
         if self.game.status() is not None:
             self.show_winner()
-        else:
-            self.status.set("The network played " + name + ". Your turn.")
+            return
 
-    def show_search(self, result, chosen_action):
+        if self.selected_name(self.game.player_to_move) == HUMAN:
+            self.set_turn_status()
+            return
+
+        if self.has_human() or self.running:
+            self.schedule_computer_move(180)
+        else:
+            self.set_turn_status()
+
+    def set_turn_status(self):
+        if self.game is None or self.game.status() is not None:
+            return
+        player = self.game.player_to_move
+        symbol = "X" if player == PLAYER_1 else "O"
+        name = self.selected_name(player)
+        if name == HUMAN:
+            self.status.set(symbol + " is human. Select a pawn, then its destination.")
+        else:
+            self.status.set(symbol + " · " + name + " to move. Click Play or Step.")
+
+    def show_search(self, result, chosen_action, name, elapsed):
         for item in self.table.get_children():
             self.table.delete(item)
         actions = list(result["visit_counts"])
@@ -205,15 +527,33 @@ class GameWindow:
             self.table.insert("", "end", values=values, tags=tags)
 
         chosen_move = move_text(self.game, self.game.decode(chosen_action))
+        self.search_title.set("PUCT search — " + name)
         self.summary.set(
             "Selected "
             + chosen_move
             + " · root N="
             + str(parent_visits)
             + " · root Q(P1)=%+.3f" % result["root_q"]
+            + " · %.2fs" % elapsed
+        )
+
+    def show_alpha_beta(self, agent, move, elapsed):
+        for item in self.table.get_children():
+            self.table.delete(item)
+        self.search_title.set("Alpha-beta search")
+        self.summary.set(
+            "Selected "
+            + move_text(self.game, move)
+            + " · completed depth "
+            + str(agent.stats["completed_depth"])
+            + " · "
+            + str(agent.stats["nodes"])
+            + " nodes · %.2fs" % elapsed
         )
 
     def draw_board(self):
+        if self.game is None:
+            return
         destinations = []
         if self.selected is not None:
             for move in self.game.legal_moves():
@@ -240,6 +580,8 @@ class GameWindow:
                 x = BOARD_MARGIN + col * CELL_SIZE
                 y = BOARD_MARGIN + row * CELL_SIZE
                 color = "#f0d9b5" if (row + col) % 2 == 0 else "#b58863"
+                if self.last_move is not None and square in self.last_move:
+                    color = "#d8c768"
                 if square == self.selected:
                     color = "#f6e56f"
                 if square in destinations:
@@ -265,21 +607,49 @@ class GameWindow:
                     )
 
     def show_winner(self):
-        if self.game.status() == self.human_player:
-            self.status.set("You win.")
-        else:
-            self.status.set("The network wins.")
+        self.running = False
+        winner = self.game.status()
+        symbol = "X" if winner == PLAYER_1 else "O"
+        name = self.selected_name(winner)
+        self.status.set(
+            symbol
+            + " wins — "
+            + name
+            + " after "
+            + str(len(self.game.history))
+            + " plies."
+        )
 
 
-def run_gui(checkpoint, simulations):
-    import keras
+def run_gui(
+    checkpoint=None,
+    simulations=100,
+    model_directory="checkpoints",
+    board_size=None,
+):
+    paths = []
+    loaded_networks = {}
+    if checkpoint:
+        checkpoint = os.path.abspath(checkpoint)
+        paths.append(checkpoint)
+        if board_size is None:
+            model = keras.models.load_model(checkpoint, compile=False)
+            board_size = int(model.input_shape[1])
+            loaded_networks[checkpoint] = GameNetwork(board_size, model=model)
 
-    model = keras.models.load_model(checkpoint, compile=False)
-    network = GameNetwork(int(model.input_shape[1]), model=model)
+    for path in find_checkpoints(model_directory):
+        if path not in paths:
+            paths.append(path)
+    if board_size is None:
+        board_size = 8
+
+    models = checkpoint_choices(paths, model_directory)
     root = tk.Tk()
-    root.geometry("900x475")
+    width = board_size * CELL_SIZE + 560
+    height = max(board_size * CELL_SIZE + 175, 735)
+    root.geometry(str(width) + "x" + str(height))
     root.lift()
     root.attributes("-topmost", True)
     root.after(1000, lambda: root.attributes("-topmost", False))
-    GameWindow(root, network, simulations)
+    GameWindow(root, board_size, models, simulations, loaded_networks)
     root.mainloop()

@@ -10,14 +10,16 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 
-if not exist "results\phase4\learn-5x5\checkpoints\iteration-0019-inference.h5" (
-  echo The local inference checkpoint is missing.
+if not exist "checkpoints\phase8" (
+  echo The local 8x8 checkpoints are missing.
+  echo Copy the accepted models into checkpoints\phase8 first.
   pause
   exit /b 1
 )
 
 ".venv\Scripts\python.exe" -m breakthrough_zero.cli gui ^
-  --checkpoint "results\phase4\learn-5x5\checkpoints\iteration-0019-inference.h5" ^
-  --simulations 100
+  --models-dir "checkpoints\phase8" ^
+  --board-size 8 ^
+  --simulations 256
 
 if errorlevel 1 pause

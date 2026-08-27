@@ -96,15 +96,29 @@ breakthrough-zero learn \
   --report results/phase4/learn-5x5-report.json
 ```
 
-Run the local graphical board to play either color against a trained checkpoint.
-After each network move, the table shows the final PUCT prior, visit count,
-absolute Player-1 Q, exploration bonus, and selection score for every legal move.
-On Windows, `play_gui.bat` launches the installed local checkpoint directly.
+Run the local graphical arena to put a human, alpha-beta, rollout MCTS, or any
+saved neural checkpoint in either player seat. Two computer players can play
+continuously, pause between moves, or advance one move at a time. After a PUCT
+move, the table shows the final prior, visit count, absolute Player-1 Q,
+exploration bonus, and selection score for every legal move. Alpha-beta instead
+reports its completed depth, node count, and thinking time. The move list keeps
+the complete game visible.
+
+On Windows, `play_gui.bat` discovers every 8x8 model stored below
+`checkpoints/phase8`. The model files are experiment artifacts and are not
+tracked by Git.
 
 ```bash
 breakthrough-zero gui \
-  --checkpoint results/phase4/learn-5x5/checkpoints/iteration-0019-inference.h5
+  --models-dir checkpoints/phase8 \
+  --board-size 8 \
+  --simulations 256
 ```
+
+`--checkpoint PATH` remains available for opening one checkpoint directly. If
+`--board-size` is omitted in that form, the GUI reads the board size from the
+model. "Vanilla MCTS" uses the project's rollout evaluator and uniform PUCT
+priors, so it has no neural policy or value function.
 
 Raw records preserve the position, player, legal relative actions, visit counts, and final absolute outcome. That is enough to reconstruct the policy and value targets.
 

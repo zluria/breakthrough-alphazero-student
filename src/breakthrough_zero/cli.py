@@ -94,7 +94,9 @@ def build_parser():
     learn.add_argument("--report", required=True)
 
     gui = commands.add_parser("gui")
-    gui.add_argument("--checkpoint", required=True)
+    gui.add_argument("--checkpoint")
+    gui.add_argument("--models-dir", default="checkpoints")
+    gui.add_argument("--board-size", type=int)
     gui.add_argument("--simulations", type=int, default=100)
 
     inspect = commands.add_parser("inspect-data")
@@ -162,7 +164,12 @@ def main(arguments=None):
     if args.command == "gui":
         from .gui import run_gui
 
-        run_gui(args.checkpoint, args.simulations)
+        run_gui(
+            args.checkpoint,
+            args.simulations,
+            args.models_dir,
+            args.board_size,
+        )
         return 0
 
     if args.command == "inspect-data":
