@@ -116,6 +116,8 @@ class GameWindow:
         self.make_controls()
         self.make_board()
         self.make_report()
+        root.bind("<Left>", self.previous_key)
+        root.bind("<Right>", self.next_key)
 
         self.status = tk.StringVar()
         ttk.Label(root, textvariable=self.status, font=("Segoe UI", 11)).grid(
@@ -207,7 +209,7 @@ class GameWindow:
         report = ttk.Frame(self.root)
         report.grid(row=1, column=1, sticky="n", padx=(18, 0))
 
-        self.search_title = tk.StringVar(value="Search after the last computer move")
+        self.search_title = tk.StringVar(value="Search for the selected move")
         ttk.Label(
             report,
             textvariable=self.search_title,
@@ -363,7 +365,7 @@ class GameWindow:
     def clear_search(self):
         for item in self.table.get_children():
             self.table.delete(item)
-        self.search_title.set("Search after the last computer move")
+        self.search_title.set("Search for the selected move")
         self.summary.set("No search yet.")
 
     def play(self):
@@ -397,6 +399,7 @@ class GameWindow:
         self.schedule_computer_move(20)
 
     def board_clicked(self, event):
+        self.canvas.focus_set()
         if self.game is None or self.thinking or self.game.status() is not None:
             return
         if not self.is_live():
@@ -425,7 +428,7 @@ class GameWindow:
         if move in self.game.legal_moves():
             name = move_text(self.game, move)
             self.game.make_move(move)
-            self.record_move(move, name)
+            self.record_move(move, name, None)
             self.selected = None
             self.draw_board()
             self.continue_game()
@@ -483,15 +486,16 @@ class GameWindow:
             self.show_search(result, action, name, elapsed)
 
         text = move_text(self.game, move)
+        search_report = self.save_search_report()
         self.game.make_move(move)
-        self.record_move(move, text)
+        self.record_move(move, text, search_report)
         self.selected = None
         self.thinking = False
         self.draw_board()
         self.continue_game()
 
-    def record_move(self, move, move_name):
-        self.moves.append((move, move_name))
+    def record_move(self, move, move_name, search_report):
+        self.moves.append((move, move_name, search_report))
         self.positions.append(self.game.clone())
         self.replay_ply = len(self.moves)
 
@@ -505,6 +509,7 @@ class GameWindow:
             values = self.move_table.item(item, "values")
             self.move_table.item(item, values=(move_number, values[1], move_name))
         self.move_table.see(item)
+        self.show_search_for_position()
 
     def is_live(self):
         return self.replay_ply == len(self.moves)
@@ -534,6 +539,18 @@ class GameWindow:
     def next_position(self):
         self.show_position(self.replay_ply + 1)
 
+    def previous_key(self, unused_event):
+        if isinstance(self.root.focus_get(), ttk.Combobox):
+            return
+        self.previous_position()
+        return "break"
+
+    def next_key(self, unused_event):
+        if isinstance(self.root.focus_get(), ttk.Combobox):
+            return
+        self.next_position()
+        return "break"
+
     def go_live(self):
         self.show_position(len(self.moves))
 
@@ -544,7 +561,38 @@ class GameWindow:
         self.replay_ply = max(0, min(ply, len(self.moves)))
         self.selected = None
         self.draw_board()
+        self.show_search_for_position()
         self.set_replay_status()
+
+    def save_search_report(self):
+        rows = []
+        for item in self.table.get_children():
+            rows.append(
+                (self.table.item(item, "values"), self.table.item(item, "tags"))
+            )
+        return (self.search_title.get(), self.summary.get(), rows)
+
+    def show_search_for_position(self):
+        for item in self.table.get_children():
+            self.table.delete(item)
+        if self.replay_ply == 0:
+            self.search_title.set("Search for the selected move")
+            self.summary.set("The initial position has no preceding search.")
+            return
+
+        move_name = self.moves[self.replay_ply - 1][1]
+        report = self.moves[self.replay_ply - 1][2]
+        if report is None:
+            self.search_title.set("No search — human move")
+            self.summary.set(move_name + " was selected by the human player.")
+            return
+
+        title, summary, rows = report
+        self.search_title.set(title)
+        self.summary.set(summary)
+        for values, tags in rows:
+            self.table.insert("", "end", values=values, tags=tags)
+        self.table.yview_moveto(0)
 
     def set_replay_status(self):
         if self.is_live():
