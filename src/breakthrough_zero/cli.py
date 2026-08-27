@@ -210,6 +210,8 @@ def main(arguments=None):
         summary = dict(report)
         del summary["games"]
         print(json.dumps(summary, indent=2))
+        if report["failures"]:
+            return 1
         return 0
 
     raise AssertionError("unknown command")

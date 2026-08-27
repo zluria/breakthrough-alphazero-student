@@ -167,6 +167,7 @@ def evaluate_pair(
         "agent_b": agent_b_name,
         "board_size": board_size,
         "opening_count": opening_count,
+        "prefix_plies": prefix_plies,
         "games_requested": len(games),
         "games_completed": len(successful),
         "failures": len(games) - len(successful),
