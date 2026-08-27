@@ -182,3 +182,27 @@ under the unchanged recipe.
   values, not a converged fixed point: the start went 0-14 and iteration 56 was
   undefeated, so unregularized Elo has no finite optimum. The largest rating
   movement in pass 100 was still 2.816 points.
+
+## Final 8x8 Elo trajectory tournaments - running
+
+- Slurm job 34358 runs from exact source commit `6a0ecbc` in the isolated
+  deployment `/home/zurlu/breakthrough-alphazero-6a0ecbc`. All 46 startup
+  tests passed on its allocated GTX 1080 Ti.
+- The first stage compares accepted iterations 15, 26, 36, 46, 56, 66, 76,
+  86, 96, and 107. Every pairing receives two fresh random six-ply openings,
+  each repeated with colors reversed, for 180 games at exactly 256 PUCT
+  simulations per move. Evaluation has no search noise or move sampling.
+- Slurm job 34359 has dependency `afterok:34358`. It will read the first-stage
+  ranking, select the four highest tournament scores with Elo as the tiebreak,
+  and play five fresh paired openings per pairing. This gives 60 final games at
+  exactly 1,024 simulations per move.
+- Both stages calculate the requested sequential K=32 Elo updates for 300
+  passes from ratings initialized at 1500. The final job also calculates a
+  combined rating from all 240 games. Its report retains the per-stage ratings
+  because the two stages use different search budgets.
+- The report audit rejects failed games, missing color reversals, repeated
+  opening prefixes, and duplicate complete move logs. The first-stage output is
+  under `results/phase8/final-elo-tournaments/ten-model-quadruple-34358`; the
+  dependent final will write under the corresponding job-34359 directory.
+- Job 34358 retains its submitted 12-hour limit. The pending job 34359 was
+  extended to 24 hours after Slurm allocated the first job to the older GPU.
