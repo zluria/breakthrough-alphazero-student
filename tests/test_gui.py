@@ -2,10 +2,25 @@ import os
 import tempfile
 import unittest
 
-from breakthrough_zero.gui import checkpoint_choices, find_checkpoints
+from breakthrough_zero.game import Breakthrough
+from breakthrough_zero.gui import (
+    board_row_from_display,
+    checkpoint_choices,
+    find_checkpoints,
+    move_text,
+)
 
 
 class GUIConfigurationTests(unittest.TestCase):
+    def test_board_rows_put_rank_one_at_the_bottom(self):
+        self.assertEqual(board_row_from_display(8, 0), 7)
+        self.assertEqual(board_row_from_display(8, 7), 0)
+
+    def test_move_notation_uses_files_and_ranks(self):
+        game = Breakthrough(8)
+        move = (game.square(1, 0), game.square(2, 0))
+        self.assertEqual(move_text(game, move), "a2-a3")
+
     def test_checkpoint_discovery_finds_keras_models_recursively(self):
         with tempfile.TemporaryDirectory() as directory:
             nested = os.path.join(directory, "accepted")

@@ -29,6 +29,12 @@ def move_text(game, move):
     return names[0] + "-" + names[1]
 
 
+def board_row_from_display(board_size, display_row):
+    """Convert a row counted from the top of the window to a board row."""
+
+    return board_size - 1 - display_row
+
+
 def find_checkpoints(directory):
     """Return the Keras model files below a directory."""
 
@@ -86,7 +92,9 @@ class GameWindow:
         self.game = None
         self.players = {}
         self.selected = None
-        self.last_move = None
+        self.moves = []
+        self.positions = []
+        self.replay_ply = 0
         self.thinking = False
         self.running = False
         self.pending_move = None
@@ -228,20 +236,32 @@ class GameWindow:
             justify="left",
         ).pack(anchor="w", pady=(7, 12))
 
-        ttk.Label(report, text="Moves", font=("Segoe UI", 11, "bold")).pack(
-            anchor="w"
+        move_heading = ttk.Frame(report)
+        move_heading.pack(fill="x")
+        ttk.Label(move_heading, text="Moves", font=("Segoe UI", 11, "bold")).pack(
+            side="left"
         )
+        ttk.Button(move_heading, text="|<", width=3, command=self.first_position).pack(
+            side="left", padx=(18, 3)
+        )
+        ttk.Button(move_heading, text="<", width=3, command=self.previous_position).pack(
+            side="left", padx=(0, 3)
+        )
+        ttk.Button(move_heading, text=">", width=3, command=self.next_position).pack(
+            side="left", padx=(0, 3)
+        )
+        ttk.Button(move_heading, text="Live", command=self.go_live).pack(side="left")
         move_frame = ttk.Frame(report)
         move_frame.pack(fill="x", pady=(3, 0))
-        move_columns = ("ply", "player", "agent", "move", "seconds")
+        move_columns = ("number", "player_1", "player_2")
         self.move_table = ttk.Treeview(
             move_frame,
             columns=move_columns,
             show="headings",
             height=9,
         )
-        move_headings = ("Ply", "Side", "Player", "Move", "Time")
-        move_widths = (42, 48, 180, 75, 62)
+        move_headings = ("#", "X", "O")
+        move_widths = (42, 165, 165)
         for index in range(len(move_columns)):
             self.move_table.heading(move_columns[index], text=move_headings[index])
             self.move_table.column(
@@ -253,6 +273,7 @@ class GameWindow:
         self.move_table.configure(yscrollcommand=move_scrollbar.set)
         self.move_table.pack(side="left")
         move_scrollbar.pack(side="right", fill="y")
+        self.move_table.bind("<ButtonRelease-1>", self.move_clicked)
 
     def selected_name(self, player):
         if player == PLAYER_1:
@@ -323,7 +344,9 @@ class GameWindow:
         self.players = players
         self.game = Breakthrough(self.board_size)
         self.selected = None
-        self.last_move = None
+        self.moves = []
+        self.positions = [self.game.clone()]
+        self.replay_ply = 0
         self.thinking = False
         self.clear_search()
         for item in self.move_table.get_children():
@@ -344,7 +367,10 @@ class GameWindow:
         self.summary.set("No search yet.")
 
     def play(self):
-        if self.game is None or self.game.status() is not None:
+        if self.game is None:
+            return
+        self.go_live()
+        if self.game.status() is not None:
             return
         self.running = True
         self.continue_game()
@@ -359,7 +385,10 @@ class GameWindow:
             self.set_turn_status()
 
     def step(self):
-        if self.game is None or self.game.status() is not None:
+        if self.game is None:
+            return
+        self.go_live()
+        if self.game.status() is not None:
             return
         self.running = False
         if self.selected_name(self.game.player_to_move) == HUMAN:
@@ -370,14 +399,17 @@ class GameWindow:
     def board_clicked(self, event):
         if self.game is None or self.thinking or self.game.status() is not None:
             return
+        if not self.is_live():
+            return
         if self.selected_name(self.game.player_to_move) != HUMAN:
             return
         col = (event.x - BOARD_MARGIN) // CELL_SIZE
-        row = (event.y - BOARD_MARGIN) // CELL_SIZE
-        if row < 0 or row >= self.game.board_size:
+        display_row = (event.y - BOARD_MARGIN) // CELL_SIZE
+        if display_row < 0 or display_row >= self.game.board_size:
             return
         if col < 0 or col >= self.game.board_size:
             return
+        row = board_row_from_display(self.game.board_size, display_row)
         self.square_clicked(self.game.square(row, col))
 
     def square_clicked(self, square):
@@ -392,9 +424,8 @@ class GameWindow:
         move = (self.selected, square)
         if move in self.game.legal_moves():
             name = move_text(self.game, move)
-            self.record_move(player, HUMAN, name, None)
             self.game.make_move(move)
-            self.last_move = move
+            self.record_move(move, name)
             self.selected = None
             self.draw_board()
             self.continue_game()
@@ -452,27 +483,96 @@ class GameWindow:
             self.show_search(result, action, name, elapsed)
 
         text = move_text(self.game, move)
-        self.record_move(player, name, text, elapsed)
         self.game.make_move(move)
-        self.last_move = move
+        self.record_move(move, text)
         self.selected = None
         self.thinking = False
         self.draw_board()
         self.continue_game()
 
-    def record_move(self, player, name, move_name, elapsed):
-        ply = len(self.game.history) + 1
-        symbol = "X" if player == PLAYER_1 else "O"
-        if elapsed is None:
-            seconds = ""
+    def record_move(self, move, move_name):
+        self.moves.append((move, move_name))
+        self.positions.append(self.game.clone())
+        self.replay_ply = len(self.moves)
+
+        move_number = (self.replay_ply + 1) // 2
+        item = "move-" + str(move_number)
+        if self.replay_ply % 2 == 1:
+            self.move_table.insert(
+                "", "end", iid=item, values=(move_number, move_name, "")
+            )
         else:
-            seconds = "%.2fs" % elapsed
-        self.move_table.insert(
-            "", "end", values=(ply, symbol, name, move_name, seconds)
+            values = self.move_table.item(item, "values")
+            self.move_table.item(item, values=(move_number, values[1], move_name))
+        self.move_table.see(item)
+
+    def is_live(self):
+        return self.replay_ply == len(self.moves)
+
+    def move_clicked(self, event):
+        item = self.move_table.identify_row(event.y)
+        column = self.move_table.identify_column(event.x)
+        if not item or column not in ("#1", "#2", "#3"):
+            return
+
+        values = self.move_table.item(item, "values")
+        move_number = int(values[0])
+        if column == "#2":
+            ply = 2 * move_number - 1
+        elif column == "#3" and values[2]:
+            ply = 2 * move_number
+        else:
+            ply = min(2 * move_number, len(self.moves))
+        self.show_position(ply)
+
+    def first_position(self):
+        self.show_position(0)
+
+    def previous_position(self):
+        self.show_position(self.replay_ply - 1)
+
+    def next_position(self):
+        self.show_position(self.replay_ply + 1)
+
+    def go_live(self):
+        self.show_position(len(self.moves))
+
+    def show_position(self, ply):
+        if self.game is None:
+            return
+        self.pause()
+        self.replay_ply = max(0, min(ply, len(self.moves)))
+        self.selected = None
+        self.draw_board()
+        self.set_replay_status()
+
+    def set_replay_status(self):
+        if self.is_live():
+            if self.game.status() is not None:
+                self.show_winner()
+            else:
+                self.set_turn_status()
+            return
+        if self.replay_ply == 0:
+            self.status.set("Replay: initial position.")
+            return
+
+        name = self.moves[self.replay_ply - 1][1]
+        move_number = (self.replay_ply + 1) // 2
+        if self.replay_ply % 2 == 1:
+            prefix = str(move_number) + ". "
+        else:
+            prefix = str(move_number) + "... "
+        self.status.set(
+            "Replay: "
+            + prefix
+            + name
+            + " (ply "
+            + str(self.replay_ply)
+            + " of "
+            + str(len(self.moves))
+            + ")."
         )
-        children = self.move_table.get_children()
-        if children:
-            self.move_table.see(children[-1])
 
     def continue_game(self):
         if self.game.status() is not None:
@@ -490,6 +590,9 @@ class GameWindow:
 
     def set_turn_status(self):
         if self.game is None or self.game.status() is not None:
+            return
+        if not self.is_live():
+            self.set_replay_status()
             return
         player = self.game.player_to_move
         symbol = "X" if player == PLAYER_1 else "O"
@@ -554,18 +657,24 @@ class GameWindow:
     def draw_board(self):
         if self.game is None:
             return
+        shown_game = self.positions[self.replay_ply]
+        if self.replay_ply == 0:
+            last_move = None
+        else:
+            last_move = self.moves[self.replay_ply - 1][0]
+
         destinations = []
-        if self.selected is not None:
+        if self.is_live() and self.selected is not None:
             for move in self.game.legal_moves():
                 if move[0] == self.selected:
                     destinations.append(move[1])
 
         self.canvas.delete("all")
-        for row in range(self.game.board_size):
+        for display_row in range(self.game.board_size):
             self.canvas.create_text(
                 BOARD_MARGIN / 2,
-                BOARD_MARGIN + row * CELL_SIZE + CELL_SIZE / 2,
-                text=str(row + 1),
+                BOARD_MARGIN + display_row * CELL_SIZE + CELL_SIZE / 2,
+                text=str(self.game.board_size - display_row),
             )
         for col in range(self.game.board_size):
             self.canvas.create_text(
@@ -574,13 +683,15 @@ class GameWindow:
                 text=chr(ord("a") + col),
             )
 
-        for row in range(self.game.board_size):
+        for display_row in range(self.game.board_size):
+            row = board_row_from_display(self.game.board_size, display_row)
             for col in range(self.game.board_size):
                 square = self.game.square(row, col)
                 x = BOARD_MARGIN + col * CELL_SIZE
-                y = BOARD_MARGIN + row * CELL_SIZE
-                color = "#f0d9b5" if (row + col) % 2 == 0 else "#b58863"
-                if self.last_move is not None and square in self.last_move:
+                y = BOARD_MARGIN + display_row * CELL_SIZE
+                # As on a chessboard, a1 is the dark square at lower left.
+                color = "#b58863" if (row + col) % 2 == 0 else "#f0d9b5"
+                if last_move is not None and square in last_move:
                     color = "#d8c768"
                 if square == self.selected:
                     color = "#f6e56f"
@@ -594,7 +705,7 @@ class GameWindow:
                     fill=color,
                     outline="",
                 )
-                piece = self.game.board[square]
+                piece = shown_game.board[square]
                 if piece != 0:
                     symbol = "X" if piece == PLAYER_1 else "O"
                     piece_color = "#17365d" if piece == PLAYER_1 else "#8b1a1a"
