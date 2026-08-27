@@ -9,6 +9,7 @@ from tkinter import messagebox, ttk
 import keras
 
 from .agents import AlphaBetaAgent
+from .evaluation import randomized_openings
 from .game import Breakthrough, PLAYER_1, PLAYER_2
 from .neural import GameNetwork, NeuralBoundary
 from .puct import PUCTPlayer, RolloutEvaluator, best_action
@@ -91,6 +92,7 @@ class GameWindow:
         self.networks = loaded_networks or {}
         self.game = None
         self.players = {}
+        self.player_names = {}
         self.selected = None
         self.moves = []
         self.positions = []
@@ -101,6 +103,7 @@ class GameWindow:
 
         self.simulation_text = tk.StringVar(value=str(simulations))
         self.alpha_beta_time_text = tk.StringVar(value="0.1")
+        self.random_start_text = tk.StringVar(value="0")
         self.player_1_text = tk.StringVar(value=HUMAN)
         neural_names = list(model_choices)
         if neural_names:
@@ -142,7 +145,8 @@ class GameWindow:
         )
         self.player_1_box.grid(row=0, column=1, sticky="w", padx=(5, 18))
         self.player_1_box.bind(
-            "<<ComboboxSelected>>", lambda unused_event: self.new_game()
+            "<<ComboboxSelected>>",
+            lambda unused_event: self.player_changed(PLAYER_1),
         )
 
         ttk.Label(controls, text="Player 2 (O):").grid(row=0, column=2, sticky="w")
@@ -155,7 +159,8 @@ class GameWindow:
         )
         self.player_2_box.grid(row=0, column=3, sticky="w", padx=(5, 0))
         self.player_2_box.bind(
-            "<<ComboboxSelected>>", lambda unused_event: self.new_game()
+            "<<ComboboxSelected>>",
+            lambda unused_event: self.player_changed(PLAYER_2),
         )
 
         ttk.Label(controls, text="MCTS simulations:").grid(
@@ -178,8 +183,18 @@ class GameWindow:
             width=7,
         ).grid(row=1, column=3, sticky="w", padx=(5, 0), pady=(8, 0))
 
+        ttk.Label(controls, text="Random start plies:").grid(
+            row=1, column=4, sticky="w", padx=(18, 0), pady=(8, 0)
+        )
+        ttk.Combobox(
+            controls,
+            textvariable=self.random_start_text,
+            values=(0, 2, 4, 6, 8, 10, 12),
+            width=5,
+        ).grid(row=1, column=5, sticky="w", padx=(5, 0), pady=(8, 0))
+
         buttons = ttk.Frame(controls)
-        buttons.grid(row=2, column=0, columnspan=4, sticky="w", pady=(9, 0))
+        buttons.grid(row=2, column=0, columnspan=6, sticky="w", pady=(9, 0))
         ttk.Button(buttons, text="New game", command=self.new_game).pack(
             side="left", padx=(0, 7)
         )
@@ -294,6 +309,12 @@ class GameWindow:
             raise ValueError("alpha-beta seconds must be positive")
         return simulations, move_seconds
 
+    def read_random_start(self):
+        plies = int(self.random_start_text.get())
+        if plies < 0:
+            raise ValueError("random start plies cannot be negative")
+        return plies
+
     def load_network(self, name):
         path = self.model_choices[name]
         if path not in self.networks:
@@ -331,6 +352,7 @@ class GameWindow:
         self.pause()
         try:
             simulations, move_seconds = self.read_settings()
+            random_plies = self.read_random_start()
             players = {}
             players[PLAYER_1] = self.make_player(
                 self.player_1_text.get(), simulations, move_seconds
@@ -338,12 +360,19 @@ class GameWindow:
             players[PLAYER_2] = self.make_player(
                 self.player_2_text.get(), simulations, move_seconds
             )
-        except (OSError, ValueError) as error:
+            opening = randomized_openings(
+                1, self.board_size, None, random_plies
+            )[0]
+        except (OSError, RuntimeError, ValueError) as error:
             messagebox.showerror("Cannot start game", str(error))
             self.status.set("Choose compatible players and start a new game.")
             return
 
         self.players = players
+        self.player_names = {
+            PLAYER_1: self.player_1_text.get(),
+            PLAYER_2: self.player_2_text.get(),
+        }
         self.game = Breakthrough(self.board_size)
         self.selected = None
         self.moves = []
@@ -353,8 +382,44 @@ class GameWindow:
         self.clear_search()
         for item in self.move_table.get_children():
             self.move_table.delete(item)
+        opening_report = (
+            "Random opening",
+            "This move was sampled to create a varied starting position.",
+            [],
+        )
+        for move in opening:
+            name = move_text(self.game, move)
+            self.game.make_move(move)
+            self.record_move(move, name, opening_report)
         self.draw_board()
         self.continue_game()
+
+    def player_changed(self, player):
+        if self.game is None:
+            return
+        self.pause()
+        self.selected = None
+        name = self.selected_name(player)
+        try:
+            simulations, move_seconds = self.read_settings()
+            new_player = self.make_player(name, simulations, move_seconds)
+        except (OSError, ValueError) as error:
+            messagebox.showerror("Cannot change player", str(error))
+            old_name = self.player_names[player]
+            if player == PLAYER_1:
+                self.player_1_text.set(old_name)
+            else:
+                self.player_2_text.set(old_name)
+            self.set_replay_status()
+            return
+
+        self.players[player] = new_player
+        self.player_names[player] = name
+        self.draw_board()
+        if self.game.status() is not None:
+            self.show_winner()
+        else:
+            self.set_turn_status()
 
     def swap_players(self):
         first = self.player_1_text.get()
@@ -804,7 +869,7 @@ def run_gui(
 
     models = checkpoint_choices(paths, model_directory)
     root = tk.Tk()
-    width = board_size * CELL_SIZE + 560
+    width = max(board_size * CELL_SIZE + 560, 920)
     height = max(board_size * CELL_SIZE + 175, 735)
     root.geometry(str(width) + "x" + str(height))
     root.lift()
