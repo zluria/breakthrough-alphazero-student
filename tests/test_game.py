@@ -1,8 +1,10 @@
+import math
 import random
 import unittest
 
 import breakthrough_zero.agents as agents_module
-from breakthrough_zero.agents import AlphaBetaAgent, solve_exact
+from breakthrough_zero.agents import AlphaBetaAgent, evaluate_position, solve_exact
+from breakthrough_zero.evaluation import evaluate_pair
 from breakthrough_zero.game import (
     Breakthrough,
     PLAYER_1,
@@ -164,7 +166,64 @@ class GameRulesTests(unittest.TestCase):
             game.make_move(move)
             actual = solve_exact(game)
             self.assertEqual(actual, expected)
-            self.assertEqual(int(value), expected)
+            value_sign = 1 if value > 0 else -1
+            self.assertEqual(value_sign, expected)
+
+    def test_alpha_beta_terminal_scores_and_arena_scores_use_both_colors(self):
+        player_1_win = game_from_rows(
+            [".....", "....2", ".....", "..1..", "....."], PLAYER_1
+        )
+        player_2_win = game_from_rows(
+            [".....", "..2..", ".....", "1....", "....."], PLAYER_2
+        )
+        agent = AlphaBetaAgent(2)
+        for game, expected in (
+            (player_1_win, PLAYER_1),
+            (player_2_win, PLAYER_2),
+        ):
+            value, move = agent.search(game, 2)
+            game.make_move(move)
+            self.assertEqual(game.status(), expected)
+            expected_value = math.inf if expected == PLAYER_1 else -math.inf
+            self.assertEqual(value, expected_value)
+
+        report = evaluate_pair(
+            AlphaBetaAgent(8),
+            AlphaBetaAgent(8),
+            "alpha-a",
+            "alpha-b",
+            1,
+            0,
+            3,
+            1,
+        )
+        for game in report["games"]:
+            expected_score = float(game["winner"] == game["agent_a_player"])
+            self.assertEqual(game["agent_a_score"], expected_score)
+
+    def test_alpha_beta_heuristic_preserves_strong_position_order(self):
+        large_player_1_advantage = game_from_rows(
+            ["11111", "11111", "11111", "11111", "....2"]
+        )
+        smaller_player_1_advantage = game_from_rows(
+            ["11111", "11111", "11111", ".....", "....2"]
+        )
+        large_player_2_advantage = game_from_rows(
+            ["1....", "22222", "22222", "22222", "22222"]
+        )
+        smaller_player_2_advantage = game_from_rows(
+            ["1....", ".....", "22222", "22222", "22222"]
+        )
+
+        large_positive = evaluate_position(large_player_1_advantage)
+        smaller_positive = evaluate_position(smaller_player_1_advantage)
+        large_negative = evaluate_position(large_player_2_advantage)
+        smaller_negative = evaluate_position(smaller_player_2_advantage)
+
+        self.assertTrue(math.isfinite(large_positive))
+        self.assertGreater(large_positive, smaller_positive)
+        self.assertTrue(math.isfinite(large_negative))
+        self.assertLess(large_negative, smaller_negative)
 
     def test_alpha_beta_timeout_restores_position(self):
         game = Breakthrough(5, 1)

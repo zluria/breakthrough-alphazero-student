@@ -79,7 +79,10 @@ class AlphaBetaAgent:
 
         self.stats["nodes"] += 1
         if game.status() is not None:
-            return float(game.status()), None
+            # A proven result must dominate every finite horizon evaluation.
+            if game.status() == PLAYER_1:
+                return math.inf, None
+            return -math.inf, None
         if depth == 0:
             return evaluate_position(game), None
 
@@ -172,7 +175,7 @@ def evaluate_position(game):
     # Material dominates, progress recognizes pawn races, and mobility breaks
     # ties between positions with similar pieces and advancement.
     value = 0.55 * material + 0.35 * progress + 0.10 * mobility
-    return max(-0.99, min(0.99, value))
+    return value
 
 
 def solve_exact(game, cache=None):
